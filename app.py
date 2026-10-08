@@ -16,11 +16,12 @@ from analytics.pricing_engine import SmartphonePricingEngine
 from analytics.depreciation_engine import SmartphoneDepreciationEngine
 from pipeline.normalizer import SmartphoneListingNormalizer
 from pipeline.scam_detector import SmartphoneScamDetector
+from data.master_catalog_seed import seed_master_catalog
+from scrapers.generate_synthetic_data import generate_realistic_market_dataset
 
 # Page Config
 st.set_page_config(
     page_title="PhonePrice ID — Smartphone Intelligence & Valuation Engine",
-    page_icon="📱",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -41,7 +42,7 @@ st.markdown("""
     }
     .metric-card {
         background-color: #F8FAFC;
-        border-radius: 10px;
+        border-radius: 8px;
         padding: 15px;
         border: 1px solid #E2E8F0;
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
@@ -49,21 +50,15 @@ st.markdown("""
     .badge-pill {
         display: inline-block;
         padding: 4px 10px;
-        border-radius: 12px;
+        border-radius: 4px;
         font-size: 0.8rem;
         font-weight: 600;
     }
-    .badge-super { background-color: #FEE2E2; color: #991B1B; }
-    .badge-hot { background-color: #FEF3C7; color: #92400E; }
-    .badge-good { background-color: #DCFCE7; color: #166534; }
 </style>
 """, unsafe_allow_html=True)
 
 def get_db_session():
     return SessionLocal()
-
-from data.master_catalog_seed import seed_master_catalog
-from scrapers.generate_synthetic_data import generate_realistic_market_dataset
 
 # Initialize DB if not exists & auto-seed if fresh
 init_db()
@@ -74,27 +69,27 @@ if _test_db.query(MasterVariant).count() == 0:
 _test_db.close()
 
 # Sidebar Navigation
-st.sidebar.title("📱 PhonePrice ID")
-st.sidebar.caption("v2.0 • Smartphone Market & Valuation Engine")
+st.sidebar.title("PhonePrice ID")
+st.sidebar.caption("System Version 2.0 • Smartphone Valuation & Market Intelligence")
 
 menu = st.sidebar.radio(
     "PILIH MODUL ANALISIS:",
     [
-        "📊 Market Overview & Dashboard",
-        "⚖️ FMV & Hedonic Calculator",
-        "📈 3-Tier Price Corridors & Quantiles",
-        "🔥 Arbitrage & Hot Deals Radar",
-        "🔎 Spec Matrix & Model Comparison",
-        "🛡️ Data Explorer & Scam Filter"
+        "Market Overview & Dashboard",
+        "FMV & Hedonic Calculator",
+        "3-Tier Price Corridors & Quantiles",
+        "Arbitrage & Hot Deals Radar",
+        "Spec Matrix & Model Comparison",
+        "Data Explorer & Scam Filter"
     ]
 )
 
 st.sidebar.markdown("---")
 st.sidebar.info(
-    "💡 **Metodologi Sistem:**\n\n"
-    "• **AI & NLP Normalizer:** Ekstraksi spesifikasi, garansi (iBox/SEIN/Inter), IMEI, BH%, dan kelengkapan.\n"
-    "• **Tukey IQR:** Pembersihan outlier & scam harga DP palsu.\n"
-    "• **Hedonic Quality Valuation:** Penyesuaian nilai pasar berdasarkan kondisi fisik, baterai, & status sinyal."
+    "**Metodologi Sistem:**\n\n"
+    "- **NLP Normalizer:** Ekstraksi spesifikasi, garansi (iBox/SEIN/Inter), IMEI, BH%, dan kelengkapan.\n"
+    "- **Tukey IQR:** Pembersihan outlier & scam harga DP palsu.\n"
+    "- **Hedonic Quality Valuation:** Penyesuaian nilai pasar berdasarkan kondisi fisik, baterai, dan status sinyal."
 )
 
 db = get_db_session()
@@ -102,9 +97,9 @@ db = get_db_session()
 # ==========================================
 # 1. MARKET OVERVIEW
 # ==========================================
-if menu == "📊 Market Overview & Dashboard":
-    st.markdown('<div class="main-header">📱 Smartphone Market Intelligence Dashboard</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Analisis komprehensif pasar smartphone bekas & sekunder Indonesia (Harga Pasar Wajar, Depresiasi, dan Distribusi Merk).</div>', unsafe_allow_html=True)
+if menu == "Market Overview & Dashboard":
+    st.markdown('<div class="main-header">Smartphone Market Intelligence Dashboard</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Analisis komprehensif pasar smartphone sekunder Indonesia (Harga Pasar Wajar, Depresiasi, dan Distribusi Merk 2010-2026).</div>', unsafe_allow_html=True)
 
     # Metrics
     total_listings = db.query(ScrapedListing).count()
@@ -126,10 +121,8 @@ if menu == "📊 Market Overview & Dashboard":
 
     st.markdown("---")
 
-    # Visualizations
     col_left, col_right = st.columns(2)
 
-    # Brand Share & Average Price Chart
     with col_left:
         st.subheader("Distribusi Volume Listing per Merk")
         query_brand = db.query(
@@ -149,13 +142,13 @@ if menu == "📊 Market Overview & Dashboard":
 
             fig_brand = px.pie(
                 brand_summary, values="Count", names="Brand",
-                title="Market Share Volume Listing Berdasarkan Brand",
+                title="Pangsa Pasar Listing Berdasarkan Brand",
                 hole=0.4,
                 color_discrete_sequence=px.colors.qualitative.Safe
             )
             st.plotly_chart(fig_brand, use_container_width=True)
         else:
-            st.warning("Data listing belum tersedia. Silakan jalankan seeder pipeline.")
+            st.warning("Data listing belum tersedia.")
 
     with col_right:
         st.subheader("Kurva Depresiasi Nilai Pasar (MSRP vs Resale)")
@@ -203,9 +196,9 @@ if menu == "📊 Market Overview & Dashboard":
 # ==========================================
 # 2. FMV & HEDONIC CALCULATOR
 # ==========================================
-elif menu == "⚖️ FMV & Hedonic Calculator":
-    st.markdown('<div class="main-header">⚖️ Fair Market Value & Hedonic Calculator</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Hitung valuasi harga pasar wajar dengan penyesuaian kualitas riil: Status IMEI, Garansi iBox vs Inter, Battery Health, Layar & Biometrik.</div>', unsafe_allow_html=True)
+elif menu == "FMV & Hedonic Calculator":
+    st.markdown('<div class="main-header">Fair Market Value & Hedonic Calculator</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Perhitungan valuasi harga pasar wajar dengan penyesuaian kualitas riil: Status IMEI, Garansi Resmi vs Inter, Battery Health, Layar & Biometrik.</div>', unsafe_allow_html=True)
 
     col_select1, col_select2, col_select3 = st.columns(3)
     brands = [b.name for b in db.query(MasterBrand).order_by(MasterBrand.name).all()]
@@ -214,7 +207,7 @@ elif menu == "⚖️ FMV & Hedonic Calculator":
         selected_brand = st.selectbox("Pilih Merk Smartphone:", brands if brands else ["Apple"])
 
     brand_obj = db.query(MasterBrand).filter(MasterBrand.name == selected_brand).first()
-    models = [m.name for m in db.query(MasterModel).filter(MasterModel.brand_id == brand_obj.id).order_by(MasterModel.name).all()] if brand_obj else []
+    models = [m.name for m in db.query(MasterModel).filter(MasterModel.brand_id == brand_obj.id).order_by(MasterModel.release_year.desc()).all()] if brand_obj else []
 
     with col_select2:
         selected_model = st.selectbox("Pilih Model:", models if models else ["iPhone 15 Pro Max"])
@@ -234,7 +227,7 @@ elif menu == "⚖️ FMV & Hedonic Calculator":
         col_specs, col_inputs = st.columns([1.2, 1.8])
 
         with col_specs:
-            st.markdown("### 📋 Spesifikasi Bawaan Pabrik")
+            st.markdown("### Spesifikasi Bawaan Pabrik")
             st.markdown(f"""
             - **Merk & Model:** `{selected_brand}` {model_obj.name}
             - **Tahun Rilis:** `{model_obj.release_year}`
@@ -250,7 +243,7 @@ elif menu == "⚖️ FMV & Hedonic Calculator":
             """)
 
         with col_inputs:
-            st.markdown("### ⚙️ Atribut Kualitas & Kondisi Fisik Unit")
+            st.markdown("### Atribut Kualitas & Kondisi Fisik Unit")
             
             c_in1, c_in2 = st.columns(2)
             with c_in1:
@@ -315,7 +308,6 @@ elif menu == "⚖️ FMV & Hedonic Calculator":
             base_fmv = stats["price_median"]
             sample_txt = f"{stats['sample_count']} listing aktif"
         else:
-            # Fallback Teoretis
             retention = SmartphoneDepreciationEngine.calculate_theoretical_retention(
                 selected_brand, model_obj.name, model_obj.release_year, current_year=2026
             )
@@ -335,7 +327,7 @@ elif menu == "⚖️ FMV & Hedonic Calculator":
             truetone=tt
         )
 
-        st.markdown("### 🏷️ Hasil Valuasi Harga Pasar Wajar")
+        st.markdown("### Hasil Valuasi Harga Pasar Wajar")
         res_col1, res_col2, res_col3 = st.columns(3)
         
         with res_col1:
@@ -366,8 +358,8 @@ elif menu == "⚖️ FMV & Hedonic Calculator":
 # ==========================================
 # 3. 3-TIER PRICE CORRIDORS & QUANTILES
 # ==========================================
-elif menu == "📈 3-Tier Price Corridors & Quantiles":
-    st.markdown('<div class="main-header">📈 3-Tier Price Corridors & Quantiles</div>', unsafe_allow_html=True)
+elif menu == "3-Tier Price Corridors & Quantiles":
+    st.markdown('<div class="main-header">3-Tier Price Corridors & Quantiles</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Monitoring koridor harga 3-tingkat (P25 Target Beli Murah, FMV Median, dan P75 Unit Pristine).</div>', unsafe_allow_html=True)
 
     variants = db.query(
@@ -414,11 +406,10 @@ elif menu == "📈 3-Tier Price Corridors & Quantiles":
             hide_index=True
         )
 
-        # Plotly Range Corridor
         st.markdown("### Visualisasi Rentang Koridor Harga Pasar")
         fig_cor = go.Figure()
         
-        subset = df_corridor.head(12)
+        subset = df_corridor.head(15)
         fig_cor.add_trace(go.Bar(
             name="P25 Bargain Price",
             x=subset["Varian & Storage"],
@@ -445,8 +436,8 @@ elif menu == "📈 3-Tier Price Corridors & Quantiles":
 # ==========================================
 # 4. ARBITRAGE & HOT DEALS RADAR
 # ==========================================
-elif menu == "🔥 Arbitrage & Hot Deals Radar":
-    st.markdown('<div class="main-header">🔥 Smartphone Arbitrage & Hot Deals Radar</div>', unsafe_allow_html=True)
+elif menu == "Arbitrage & Hot Deals Radar":
+    st.markdown('<div class="main-header">Smartphone Arbitrage & Hot Deals Radar</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Pemindai listing smartphone sekunder dengan diskon di atas batas normal pasar (Peluang Arbitrase Reseller).</div>', unsafe_allow_html=True)
 
     disc_thresh = st.slider("Ambang Batas Minimum Diskon Arbitrase (%):", min_value=8, max_value=30, value=12)
@@ -454,7 +445,7 @@ elif menu == "🔥 Arbitrage & Hot Deals Radar":
     deals = engine.find_hot_deals(discount_threshold_pct=float(disc_thresh))
 
     if deals:
-        st.success(f"Ditemukan **{len(deals)} peluang hot deals & arbitrase** yang terverifikasi!")
+        st.success(f"Ditemukan {len(deals)} peluang hot deals dan arbitrase yang terverifikasi.")
         df_deals = pd.DataFrame(deals)
         
         display_df = df_deals[[
@@ -472,17 +463,17 @@ elif menu == "🔥 Arbitrage & Hot Deals Radar":
 
         st.dataframe(display_df, use_container_width=True, hide_index=True)
     else:
-        st.info(f"Tidak ada listing yang memenuhi diskon >= {disc_thresh}%. Coba turunkan ambang batas.")
+        st.info(f"Tidak ada listing yang memenuhi diskon >= {disc_thresh}%.")
 
 # ==========================================
 # 5. SPEC MATRIX & MODEL COMPARISON
 # ==========================================
-elif menu == "🔎 Spec Matrix & Model Comparison":
-    st.markdown('<div class="main-header">🔎 Smartphone Hardware Spec Matrix</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Bandingkan spesifikasi teknis mendalam antar model smartphone secara berdampingan.</div>', unsafe_allow_html=True)
+elif menu == "Spec Matrix & Model Comparison":
+    st.markdown('<div class="main-header">Smartphone Hardware Spec Matrix</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Bandingkan spesifikasi teknis mendalam antar model smartphone secara berdampingan (2010 - 2026).</div>', unsafe_allow_html=True)
 
-    all_models = db.query(MasterModel, MasterBrand).join(MasterBrand, MasterModel.brand_id == MasterBrand.id).all()
-    model_choices = [f"{b.name} {m.name}" for m, b in all_models]
+    all_models = db.query(MasterModel, MasterBrand).join(MasterBrand, MasterModel.brand_id == MasterBrand.id).order_by(MasterModel.release_year.desc()).all()
+    model_choices = [f"{b.name} {m.name} ({m.release_year})" for m, b in all_models]
 
     col_c1, col_c2 = st.columns(2)
     with col_c1:
@@ -491,8 +482,11 @@ elif menu == "🔎 Spec Matrix & Model Comparison":
         dev2 = st.selectbox("Pilih Smartphone 2:", model_choices, index=min(1, len(model_choices)-1))
 
     if dev1 and dev2:
-        m1_name = dev1.split(" ", 1)[1] if " " in dev1 else dev1
-        m2_name = dev2.split(" ", 1)[1] if " " in dev2 else dev2
+        # Extract model name
+        m1_raw = dev1.rsplit(" (", 1)[0]
+        m2_raw = dev2.rsplit(" (", 1)[0]
+        m1_name = m1_raw.split(" ", 1)[1] if " " in m1_raw else m1_raw
+        m2_name = m2_raw.split(" ", 1)[1] if " " in m2_raw else m2_raw
         
         m1 = db.query(MasterModel).filter(MasterModel.name == m1_name).first()
         m2 = db.query(MasterModel).filter(MasterModel.name == m2_name).first()
@@ -500,7 +494,7 @@ elif menu == "🔎 Spec Matrix & Model Comparison":
         if m1 and m2:
             spec_data = {
                 "Parameter Spesifikasi Hardware": [
-                    "Tahun Peluncuran", "Chipset / SoC", "CPU Cores & Arch", "GPU Grafis", "Antutu v10 Score",
+                    "Tahun Peluncuran", "Chipset / SoC", "CPU Cores & Arch", "GPU Grafis", "Antutu Benchmark Score",
                     "Tipe Layar", "Ukuran Layar", "Refresh Rate", "Resolusi Display", "Peak Brightness",
                     "Kamera Belakang Utama", "Konfigurasi Kamera", "OIS & Zoom Optik", "Kamera Depan (Selfie)",
                     "Kapasitas Baterai", "Fast Charging Kabel", "Wireless Charging", "Konektivitas & NFC", "Sertifikasi IP Rating", "Berat Bodi"
@@ -527,8 +521,8 @@ elif menu == "🔎 Spec Matrix & Model Comparison":
 # ==========================================
 # 6. DATA EXPLORER & SCAM FILTER
 # ==========================================
-elif menu == "🛡️ Data Explorer & Scam Filter":
-    st.markdown('<div class="main-header">🛡️ Live Data Explorer & Scam Filter Monitor</div>', unsafe_allow_html=True)
+elif menu == "Data Explorer & Scam Filter":
+    st.markdown('<div class="main-header">Live Data Explorer & Scam Filter Monitor</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Jelajahi seluruh raw listing dan evaluasi performa filter anti-penipuan DP & HDC Palsu.</div>', unsafe_allow_html=True)
 
     filter_mode = st.radio("Status Listing:", ["Semua Listing Tunai Valid", "Hanya Terindikasi Perangkap DP / Scam", "Semua Data Mentah"], horizontal=True)
@@ -548,7 +542,7 @@ elif menu == "🛡️ Data Explorer & Scam Filter":
                 "Platform": it.source_platform.upper(),
                 "Judul Iklan": it.title,
                 "Harga (IDR)": f"Rp {float(it.price):,.0f}",
-                "Status DP/Scam": "🚨 DP TRAP / ANOMALI" if it.is_dp_price else "✅ CASH VALID",
+                "Status DP/Scam": "DP TRAP / ANOMALI" if it.is_dp_price else "CASH VALID",
                 "Garansi Asal": it.warranty_type,
                 "Status IMEI": it.imei_status,
                 "BH (%)": f"{it.battery_health_pct}%" if it.battery_health_pct else "-",

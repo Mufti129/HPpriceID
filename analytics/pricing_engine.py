@@ -215,11 +215,11 @@ class SmartphonePricingEngine:
                 if discount_pct >= discount_threshold_pct:
                     # Klasifikasi tingkat keuntungan
                     if discount_pct >= 22.0:
-                        deal_tier = "🔥 SUPER ARBITRASE (≥22%)"
+                        deal_tier = "Tier 1: Super Arbitrage (>=22%)"
                     elif discount_pct >= 15.0:
-                        deal_tier = "⭐ HOT DEAL (15-21%)"
+                        deal_tier = "Tier 2: High Arbitrage (15-21%)"
                     else:
-                        deal_tier = "✨ GOOD DEAL (12-14%)"
+                        deal_tier = "Tier 3: Moderate Arbitrage (12-14%)"
 
                     hot_deals.append({
                         "listing_id": list_obj.id,
