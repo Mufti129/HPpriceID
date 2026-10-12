@@ -1015,8 +1015,82 @@ def seed_master_catalog():
                         db.add(variant)
                         variant_count += 1
 
+        # Proses Katalog Tambahan (Expansion 2010 - 2026)
+        try:
+            from data.additional_catalog_data import ADDITIONAL_CATALOG_MODELS
+            for b_entry in ADDITIONAL_CATALOG_MODELS:
+                brand_name = b_entry["brand_name"]
+                brand = db.query(MasterBrand).filter(MasterBrand.name == brand_name).first()
+                if not brand:
+                    brand = MasterBrand(name=brand_name, country_origin="International", tier_category="Mainstream")
+                    db.add(brand)
+                    db.flush()
+                    brand_count += 1
+
+                for model_info in b_entry["models"]:
+                    model = db.query(MasterModel).filter(
+                        MasterModel.brand_id == brand.id,
+                        MasterModel.name == model_info["name"]
+                    ).first()
+
+                    if not model:
+                        model = MasterModel(
+                            brand_id=brand.id,
+                            name=model_info["name"],
+                            series=model_info.get("series"),
+                            release_year=model_info["release_year"],
+                            chipset=model_info.get("chipset"),
+                            cpu_architecture=model_info.get("cpu_architecture"),
+                            gpu=model_info.get("gpu"),
+                            antutu_benchmark_score=model_info.get("antutu_benchmark_score"),
+                            display_type=model_info.get("display_type"),
+                            screen_size_inch=model_info.get("screen_size_inch"),
+                            refresh_rate_hz=model_info.get("refresh_rate_hz", 60),
+                            resolution=model_info.get("resolution"),
+                            peak_brightness_nits=model_info.get("peak_brightness_nits"),
+                            screen_protection=model_info.get("screen_protection"),
+                            main_camera_mp=model_info.get("main_camera_mp"),
+                            camera_setup=model_info.get("camera_setup", "Triple"),
+                            has_ois=model_info.get("has_ois", True),
+                            optical_zoom_level=model_info.get("optical_zoom_level"),
+                            selfie_camera_mp=model_info.get("selfie_camera_mp"),
+                            video_recording_max=model_info.get("video_recording_max"),
+                            battery_capacity_mah=model_info.get("battery_capacity_mah"),
+                            fast_charging_watt=model_info.get("fast_charging_watt", 25),
+                            has_wireless_charging=model_info.get("has_wireless_charging", False),
+                            wireless_charging_watt=model_info.get("wireless_charging_watt", 0),
+                            network_gen=model_info.get("network_gen", "5G"),
+                            has_nfc=model_info.get("has_nfc", True),
+                            ip_rating=model_info.get("ip_rating", "IP68"),
+                            weight_grams=model_info.get("weight_grams"),
+                            os_at_launch=model_info.get("os_at_launch")
+                        )
+                        db.add(model)
+                        db.flush()
+                        model_count += 1
+
+                    for v_info in model_info["variants"]:
+                        variant = db.query(MasterVariant).filter(
+                            MasterVariant.model_id == model.id,
+                            MasterVariant.variant_name == v_info["variant_name"]
+                        ).first()
+
+                        if not variant:
+                            variant = MasterVariant(
+                                model_id=model.id,
+                                variant_name=v_info["variant_name"],
+                                ram_gb=v_info.get("ram_gb"),
+                                storage_gb=v_info["storage_gb"],
+                                official_msrp_new=v_info["official_msrp_new"],
+                                aliases=v_info.get("aliases")
+                            )
+                            db.add(variant)
+                            variant_count += 1
+        except ImportError:
+            pass
+
         db.commit()
-        print(f"[SUCCESS] Seeding Berhasil: {brand_count} Brand Baru Ditambahkan, Total Model: {model_count}, Total Varian: {variant_count}")
+        print(f"[SUCCESS] Seeding Berhasil: {brand_count} Brand Baru Ditambahkan, Total Model Baru: {model_count}, Total Varian Baru: {variant_count}")
     except Exception as e:
         db.rollback()
         print(f"[ERROR] Gagal Seeding: {e}")
@@ -1025,3 +1099,4 @@ def seed_master_catalog():
 
 if __name__ == "__main__":
     seed_master_catalog()
+

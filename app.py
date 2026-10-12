@@ -19,119 +19,340 @@ from pipeline.scam_detector import SmartphoneScamDetector
 from data.master_catalog_seed import seed_master_catalog
 from scrapers.generate_synthetic_data import generate_realistic_market_dataset
 
-# Page Config
+# ==============================================================================
+# PAGE CONFIGURATION
+# ==============================================================================
 st.set_page_config(
-    page_title="PhonePrice ID — Smartphone Intelligence & Valuation Engine",
+    page_title="PhonePrice ID | Smartphone Market Intelligence & Valuation",
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Responsive & Clean Styling
+# ==============================================================================
+# EXECUTIVE DARK SLATE THEME (HIGH CONTRAST & RESPONSIVE PROPORTIONS)
+# ==============================================================================
 st.markdown("""
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
 <style>
+    /* Global Typography & Canvas */
+    html, body, [class*="css"] {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .stApp {
+        background-color: #0f172a;
+        color: #f8fafc;
+    }
+
     .block-container {
-        padding-top: 1.5rem;
-        padding-bottom: 2rem;
+        padding-top: 1.4rem;
+        padding-bottom: 3rem;
         padding-left: 2rem;
         padding-right: 2rem;
-        max-width: 100%;
+        max-width: 1440px;
     }
-    .main-header {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #0F172A;
+
+    /* Hero AppBar Header */
+    .hero-appbar {
+        background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #2563eb 100%);
+        border-radius: 16px;
+        padding: 24px 28px;
+        color: #ffffff;
+        box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.25);
+        margin-bottom: 22px;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .hero-appbar::after {
+        content: "";
+        position: absolute;
+        top: -30px;
+        right: -30px;
+        width: 150px;
+        height: 150px;
+        background: rgba(255, 255, 255, 0.07);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    .hero-title {
+        font-size: 1.75rem;
+        font-weight: 800;
         letter-spacing: -0.02em;
-        margin-bottom: 4px;
+        margin: 0;
+        color: #ffffff !important;
+        line-height: 1.25;
     }
-    .sub-header {
-        font-size: 0.95rem;
-        color: #475569;
-        margin-bottom: 20px;
-        line-height: 1.5;
+    .hero-subtitle {
+        font-size: 0.92rem;
+        color: #dbeafe !important;
+        margin-top: 6px;
+        font-weight: 400;
+        line-height: 1.45;
     }
-    
-    /* Responsive Metric Card Grid */
-    .metric-grid {
+    .hero-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+    }
+    .hero-tag-pill {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(8px);
+        padding: 4px 12px;
+        border-radius: 30px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+    }
+
+    /* Proportional Metric Cards (Zero-Overflow, Balanced Slate Theme) */
+    .kpi-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 16px;
-        margin-bottom: 24px;
+        gap: 14px;
+        margin-bottom: 22px;
     }
-    .metric-box {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        padding: 16px 20px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    .pro-metric-card {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        padding: 16px 18px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         display: flex;
         flex-direction: column;
-        justifyContent: space-between;
+        justifyContent: center;
+        min-width: 0;
+        box-sizing: border-box;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s ease, border-color 0.2s ease;
     }
-    .metric-box-title {
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: #64748B;
+    .pro-metric-card:hover {
+        border-color: #60a5fa;
+        transform: translateY(-2px);
+    }
+    .pro-metric-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #3b82f6, #06b6d4);
+    }
+    .pro-metric-card.emerald::before {
+        background: linear-gradient(90deg, #10b981, #34d399);
+    }
+    .pro-metric-card.rose::before {
+        background: linear-gradient(90deg, #ef4444, #f87171);
+    }
+    .pro-metric-card.purple::before {
+        background: linear-gradient(90deg, #8b5cf6, #c084fc);
+    }
+    .pro-metric-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #94a3b8;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
     }
-    .metric-box-val {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #0F172A;
+    .pro-metric-val {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 1.55rem;
+        font-weight: 800;
+        color: #f8fafc;
         line-height: 1.2;
     }
-    .metric-box-sub {
-        font-size: 0.8rem;
-        color: #2563EB;
-        font-weight: 500;
-        margin-top: 4px;
+    .pro-metric-sub {
+        font-size: 0.76rem;
+        color: #60a5fa;
+        margin-top: 5px;
+        font-weight: 600;
     }
-    
-    /* Spec Card */
-    .spec-card {
-        background: #F8FAFC;
-        border: 1px solid #CBD5E1;
-        border-radius: 8px;
-        padding: 18px;
+    .pro-metric-sub.emerald {
+        color: #34d399;
+    }
+    .pro-metric-sub.rose {
+        color: #f87171;
+    }
+    .pro-metric-sub.purple {
+        color: #c084fc;
+    }
+
+    /* Structured Information Callout Boxes */
+    .info-box-blue {
+        background: rgba(59, 130, 246, 0.10);
+        border: 1px solid rgba(59, 130, 246, 0.35);
+        border-left: 4px solid #3b82f6;
+        padding: 16px 20px;
+        border-radius: 0 10px 10px 0;
+        margin-bottom: 18px;
+        color: #e2e8f0;
+    }
+    .info-box-green {
+        background: rgba(16, 185, 129, 0.10);
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        border-left: 4px solid #10b981;
+        padding: 16px 20px;
+        border-radius: 0 10px 10px 0;
+        margin-bottom: 18px;
+        color: #e2e8f0;
+    }
+    .info-box-title {
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 4px;
+        letter-spacing: -0.01em;
+    }
+    .info-box-desc {
+        font-size: 0.84rem;
+        line-height: 1.5;
+        color: #cbd5e1;
+    }
+
+    /* High Contrast Specification Card */
+    .spec-card-container {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        padding: 20px 22px;
+        color: #f8fafc;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
         height: 100%;
+        box-sizing: border-box;
     }
-    .spec-card h4 {
-        margin-top: 0;
-        color: #1E293B;
+    .spec-card-header {
         font-size: 1.05rem;
-        border-bottom: 1px solid #E2E8F0;
-        padding-bottom: 8px;
+        font-weight: 700;
+        color: #60a5fa;
+        border-bottom: 1px solid #334155;
+        padding-bottom: 10px;
+        margin-bottom: 14px;
+        letter-spacing: -0.01em;
     }
-    
-    /* Valuation Banner */
-    .valuation-banner {
-        background: linear-gradient(135deg, #1E3A8A 0%, #0F172A 100%);
-        color: #FFFFFF;
-        padding: 20px 24px;
-        border-radius: 8px;
-        margin-top: 15px;
-        margin-bottom: 15px;
+    .spec-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+        font-size: 0.85rem;
     }
-    .valuation-banner h3 {
-        color: #93C5FD;
-        margin: 0;
-        font-size: 0.9rem;
+    .spec-item-key {
+        color: #94a3b8;
+        font-weight: 500;
+    }
+    .spec-item-val {
+        color: #f8fafc;
+        font-weight: 600;
+        text-align: right;
+    }
+
+    /* Valuation Hero Result Container */
+    .val-hero-container {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border: 1.5px solid #3b82f6;
+        border-radius: 14px;
+        padding: 24px 26px;
+        margin-top: 18px;
+        margin-bottom: 22px;
+        box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
+    }
+    .val-hero-title {
+        font-size: 0.85rem;
+        font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+        color: #93c5fd;
+        margin: 0;
     }
-    .valuation-banner .price-main {
+    .val-price-hero {
+        font-family: 'JetBrains Mono', monospace;
         font-size: 2.2rem;
         font-weight: 800;
-        color: #FFFFFF;
-        margin: 6px 0;
+        color: #38bdf8;
+        line-height: 1.15;
+        margin: 8px 0;
+    }
+    .val-hero-meta {
+        font-size: 0.84rem;
+        color: #cbd5e1;
+    }
+
+    /* Sidebar Clean Styling */
+    section[data-testid="stSidebar"] {
+        background-color: #0b1120;
+        border-right: 1px solid #1e293b;
+    }
+    .sidebar-brand-box {
+        padding: 6px 0 14px 0;
+    }
+    .sidebar-title {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: -0.02em;
+    }
+    .sidebar-desc {
+        font-size: 0.78rem;
+        color: #94a3b8;
+        margin-top: 4px;
+        line-height: 1.4;
+    }
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(16, 185, 129, 0.14);
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        color: #34d399;
+        font-size: 0.70rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 3px 10px;
+        border-radius: 20px;
+        margin-top: 8px;
+    }
+    .status-dot {
+        width: 6px;
+        height: 6px;
+        background: #10b981;
+        border-radius: 50%;
     }
 </style>
 """, unsafe_allow_html=True)
 
+# Helper function for dark theme Plotly styling
+def apply_dark_plotly_layout(fig, height=420):
+    fig.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="#1e293b",
+        plot_bgcolor="#1e293b",
+        font=dict(color="#f8fafc", family="Plus Jakarta Sans"),
+        height=height,
+        margin=dict(t=40, b=30, l=30, r=30),
+        legend=dict(
+            bgcolor="rgba(15, 23, 42, 0.6)",
+            bordercolor="rgba(255, 255, 255, 0.1)",
+            font=dict(color="#f8fafc")
+        )
+    )
+    fig.update_xaxes(gridcolor="#334155", linecolor="#475569")
+    fig.update_yaxes(gridcolor="#334155", linecolor="#475569")
+    return fig
+
 @st.cache_resource(show_spinner="Inisialisasi Database & Master Katalog...")
 def ensure_database_ready():
-    """Memastikan database terinisialisasi dan terisi data."""
+    """Memastikan database terinisialisasi dan terisi katalog komprehensif 2010-2026."""
     init_db()
     db = SessionLocal()
     try:
@@ -152,9 +373,19 @@ ensure_database_ready()
 def get_db():
     return SessionLocal()
 
-# Sidebar Navigation
-st.sidebar.title("PhonePrice ID")
-st.sidebar.caption("System Version 2.0 • Smartphone Valuation & Market Intelligence")
+# ==============================================================================
+# SIDEBAR NAVIGATION
+# ==============================================================================
+st.sidebar.markdown("""
+<div class="sidebar-brand-box">
+    <div class="sidebar-title">PhonePrice ID</div>
+    <div class="sidebar-desc">Smartphone Market Intelligence & Hedonic Valuation Platform</div>
+    <div class="status-pill">
+        <span class="status-dot"></span>
+        Enterprise Active
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 menu = st.sidebar.radio(
     "PILIH MODUL ANALISIS:",
@@ -173,18 +404,30 @@ st.sidebar.markdown("---")
 st.sidebar.markdown(
     """
     **Metodologi Valuasi:**
-    1. **NLP Text Extractor:** Ekstraksi spesifikasi, legalitas IMEI Kemenperin/Bea Cukai, garansi iBox/SEIN/Inter, Battery Health %, dan kelengkapan.
-    2. **Tukey IQR Filter:** Eliminasi harga outlier dan perangkap iklan cicilan/DP semu.
+    1. **NLP Text Extractor:** Ekstraksi spesifikasi hardware, legalitas IMEI Kemenperin/Bea Cukai, garansi iBox/SEIN/Inter, Battery Health %, dan kelengkapan unit.
+    2. **Tukey IQR Filter:** Eliminasi harga outlier ekstrem dan perangkap iklan cicilan/DP semu.
     3. **Lancaster Hedonic Valuation:** Penyesuaian nilai wajar berbasis kondisi riil fisik, panel display, baterai, dan sinyal.
     """
 )
 
-# ==========================================
+# ==============================================================================
 # 1. MARKET OVERVIEW & DASHBOARD
-# ==========================================
+# ==============================================================================
 if menu == "Market Overview & Dashboard":
-    st.markdown('<div class="main-header">Smartphone Market Intelligence Dashboard</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Analisis komprehensif pasar smartphone sekunder Indonesia (Harga Pasar Wajar, Depresiasi, dan Distribusi Merk 2010-2026).</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="hero-appbar">
+        <div class="hero-title">Smartphone Market Intelligence Dashboard</div>
+        <div class="hero-subtitle">
+            Analisis makro pasar smartphone sekunder Indonesia: pemantauan harga pasar wajar, laju depresiasi tahunan, dan distribusi volume merk (2010 - 2026).
+        </div>
+        <div class="hero-tags">
+            <span class="hero-tag-pill">Katalog: 2010 - 2026</span>
+            <span class="hero-tag-pill">Filter DP Trap & HDC</span>
+            <span class="hero-tag-pill">Hedonic Pricing</span>
+            <span class="hero-tag-pill">Data Valid Terverifikasi</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     try:
         with get_db() as db:
@@ -199,36 +442,34 @@ if menu == "Market Overview & Dashboard":
             pct_scam = (scam_listings / max(1, total_listings)) * 100
 
             st.markdown(f"""
-            <div class="metric-grid">
-                <div class="metric-box">
-                    <div class="metric-box-title">Total Database Listing</div>
-                    <div class="metric-box-val">{total_listings:,}</div>
-                    <div class="metric-box-sub">Snapshot Pasar Aktif</div>
+            <div class="kpi-grid">
+                <div class="pro-metric-card">
+                    <div class="pro-metric-label">Total Database Listing</div>
+                    <div class="pro-metric-val">{total_listings:,}</div>
+                    <div class="pro-metric-sub">Snapshot Pasar Aktif</div>
                 </div>
-                <div class="metric-box">
-                    <div class="metric-box-title">Listing Tunai Valid</div>
-                    <div class="metric-box-val">{valid_cash_listings:,}</div>
-                    <div class="metric-box-sub" style="color:#16A34A;">{pct_valid:.1f}% Bebas Anomali</div>
+                <div class="pro-metric-card emerald">
+                    <div class="pro-metric-label">Listing Tunai Valid</div>
+                    <div class="pro-metric-val">{valid_cash_listings:,}</div>
+                    <div class="pro-metric-sub emerald">{pct_valid:.1f}% Bebas Anomali</div>
                 </div>
-                <div class="metric-box">
-                    <div class="metric-box-title">DP Trap & HDC Filtered</div>
-                    <div class="metric-box-val">{scam_listings:,}</div>
-                    <div class="metric-box-sub" style="color:#DC2626;">{pct_scam:.1f}% Iklan Semu Tersaring</div>
+                <div class="pro-metric-card rose">
+                    <div class="pro-metric-label">DP Trap & HDC Filtered</div>
+                    <div class="pro-metric-val">{scam_listings:,}</div>
+                    <div class="pro-metric-sub rose">{pct_scam:.1f}% Iklan Semu Tersaring</div>
                 </div>
-                <div class="metric-box">
-                    <div class="metric-box-title">Katalog 2010-2026</div>
-                    <div class="metric-box-val">{total_models} Model</div>
-                    <div class="metric-box-sub">{total_variants} Varian Terdaftar</div>
+                <div class="pro-metric-card purple">
+                    <div class="pro-metric-label">Master Katalog 2010-2026</div>
+                    <div class="pro-metric-val">{total_models} Model</div>
+                    <div class="pro-metric-sub purple">{total_variants} Varian Terdaftar</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-            st.markdown("---")
-
             col_left, col_right = st.columns(2)
 
             with col_left:
-                st.subheader("Distribusi Listing per Merk")
+                st.markdown("### Pangsa Pasar Volume Listing")
                 query_brand = db.query(
                     MasterBrand.name,
                     ScrapedListing.price
@@ -246,17 +487,17 @@ if menu == "Market Overview & Dashboard":
 
                     fig_brand = px.pie(
                         brand_summary, values="Count", names="Brand",
-                        title="Pangsa Pasar Volume Listing Berdasarkan Brand",
-                        hole=0.4,
-                        color_discrete_sequence=px.colors.qualitative.Safe
+                        title="Distribusi Volume Listing Berdasarkan Brand",
+                        hole=0.45,
+                        color_discrete_sequence=px.colors.qualitative.Prism
                     )
-                    fig_brand.update_layout(margin=dict(t=40, b=20, l=20, r=20))
+                    apply_dark_plotly_layout(fig_brand, height=400)
                     st.plotly_chart(fig_brand, use_container_width=True)
                 else:
                     st.info("Data listing sedang dipersiapkan.")
 
             with col_right:
-                st.subheader("Kurva Depresiasi Nilai Pasar (MSRP vs Resale)")
+                st.markdown("### Kurva Depresiasi Nilai Pasar")
                 variants = db.query(
                     MasterVariant.id,
                     MasterVariant.variant_name,
@@ -296,20 +537,31 @@ if menu == "Market Overview & Dashboard":
                     fig_depr = px.scatter(
                         df_depr, x="MSRP", y="FMV", color="Brand", size="Depreciation_Pct",
                         hover_data=["Variant", "Year", "Depreciation_Pct"],
-                        title="Perbandingan MSRP Peluncuran Baru vs Fair Market Value Saat Ini",
+                        title="MSRP Peluncuran Baru vs Fair Market Value Saat Ini",
                         labels={"MSRP": "Harga MSRP Baru (IDR)", "FMV": "Harga Pasar Wajar (FMV IDR)"}
                     )
-                    fig_depr.update_layout(margin=dict(t=40, b=20, l=20, r=20))
+                    apply_dark_plotly_layout(fig_depr, height=400)
                     st.plotly_chart(fig_depr, use_container_width=True)
     except Exception as e:
         st.error(f"Terjadi kesalahan pada modul Dashboard: {e}")
 
-# ==========================================
+# ==============================================================================
 # 2. FMV & HEDONIC CALCULATOR
-# ==========================================
+# ==============================================================================
 elif menu == "FMV & Hedonic Calculator":
-    st.markdown('<div class="main-header">Fair Market Value & Hedonic Calculator</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Perhitungan valuasi harga pasar wajar dengan penyesuaian kualitas riil: Status IMEI, Garansi Resmi vs Inter, Battery Health, Layar & Biometrik.</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="hero-appbar">
+        <div class="hero-title">Fair Market Value & Hedonic Calculator</div>
+        <div class="hero-subtitle">
+            Kalkulator valuasi presisi tinggi dengan penyesuaian hedonik kualitas unit: legalitas IMEI, asal garansi resmi vs inter, Battery Health, kelengkapan, dan kondisi fisik layar.
+        </div>
+        <div class="hero-tags">
+            <span class="hero-tag-pill">Hedonic Quality Adjustment</span>
+            <span class="hero-tag-pill">Battery Health Depr</span>
+            <span class="hero-tag-pill">IMEI Whitelist Premium</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     try:
         with get_db() as db:
@@ -344,18 +596,44 @@ elif menu == "FMV & Hedonic Calculator":
 
                 with col_specs:
                     st.markdown(f"""
-                    <div class="spec-card">
-                        <h4>Spesifikasi Bawaan Pabrik</h4>
-                        <p><strong>Merk & Model:</strong> {selected_brand} {model_obj.name}</p>
-                        <p><strong>Tahun Peluncuran:</strong> {model_obj.release_year}</p>
-                        <p><strong>Harga Rilis Resmi (MSRP):</strong> Rp {float(selected_var_obj.official_msrp_new):,.0f}</p>
-                        <p><strong>Chipset / SoC:</strong> {model_obj.chipset or '-'}</p>
-                        <p><strong>Kapasitas Memori:</strong> {selected_var_obj.ram_gb or '-'} GB RAM / {selected_var_obj.storage_gb} GB ROM</p>
-                        <p><strong>Display Panel:</strong> {model_obj.display_type or '-'} ({model_obj.refresh_rate_hz}Hz)</p>
-                        <p><strong>Resolusi Layar:</strong> {model_obj.resolution or '-'}</p>
-                        <p><strong>Kamera Utama:</strong> {model_obj.main_camera_mp or '-'}</p>
-                        <p><strong>Baterai & Charging:</strong> {model_obj.battery_capacity_mah or '-'} mAh ({model_obj.fast_charging_watt}W)</p>
-                        <p><strong>Konektivitas & IP:</strong> {model_obj.network_gen} | NFC: {'Ya' if model_obj.has_nfc else 'Tidak'} | {model_obj.ip_rating}</p>
+                    <div class="spec-card-container">
+                        <div class="spec-card-header">Spesifikasi Bawaan Pabrik</div>
+                        <div class="spec-item">
+                            <span class="spec-item-key">Merk & Model</span>
+                            <span class="spec-item-val">{selected_brand} {model_obj.name}</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-item-key">Tahun Peluncuran</span>
+                            <span class="spec-item-val">{model_obj.release_year}</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-item-key">MSRP Baru</span>
+                            <span class="spec-item-val" style="color:#60a5fa;">Rp {float(selected_var_obj.official_msrp_new):,.0f}</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-item-key">Chipset / SoC</span>
+                            <span class="spec-item-val">{model_obj.chipset or '-'}</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-item-key">Memori RAM / Storage</span>
+                            <span class="spec-item-val">{selected_var_obj.ram_gb or '-'} GB / {selected_var_obj.storage_gb} GB</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-item-key">Display Panel</span>
+                            <span class="spec-item-val">{model_obj.display_type or '-'} ({model_obj.refresh_rate_hz}Hz)</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-item-key">Kamera Utama</span>
+                            <span class="spec-item-val">{model_obj.main_camera_mp or '-'}</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-item-key">Baterai & Charging</span>
+                            <span class="spec-item-val">{model_obj.battery_capacity_mah or '-'} mAh ({model_obj.fast_charging_watt}W)</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-item-key">Konektivitas & IP</span>
+                            <span class="spec-item-val">{model_obj.network_gen} | NFC: {'Ya' if model_obj.has_nfc else 'Tidak'} | {model_obj.ip_rating}</span>
+                        </div>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -443,10 +721,10 @@ elif menu == "FMV & Hedonic Calculator":
                 )
 
                 st.markdown(f"""
-                <div class="valuation-banner">
-                    <h3>Rekomendasi Valuasi Nilai Pasar Wajar (Final Adjusted)</h3>
-                    <div class="price-main">Rp {hedonic_res['adjusted_price']:,.0f}</div>
-                    <div>Base FMV: Rp {base_fmv:,.0f} ({sample_txt}) | Penyesuaian Hedonik: {hedonic_res['net_adjustment_pct']:+.1f}%</div>
+                <div class="val-hero-container">
+                    <div class="val-hero-title">Rekomendasi Valuasi Nilai Pasar Wajar (Final Adjusted)</div>
+                    <div class="val-price-hero">Rp {hedonic_res['adjusted_price']:,.0f}</div>
+                    <div class="val-hero-meta">Base FMV: Rp {base_fmv:,.0f} ({sample_txt}) | Penyesuaian Hedonik: {hedonic_res['net_adjustment_pct']:+.1f}%</div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -468,12 +746,23 @@ elif menu == "FMV & Hedonic Calculator":
     except Exception as e:
         st.error(f"Terjadi kesalahan pada modul FMV Calculator: {e}")
 
-# ==========================================
+# ==============================================================================
 # 3. 3-TIER PRICE CORRIDORS & QUANTILES
-# ==========================================
+# ==============================================================================
 elif menu == "3-Tier Price Corridors & Quantiles":
-    st.markdown('<div class="main-header">3-Tier Price Corridors & Quantiles</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Monitoring koridor harga 3-tingkat (P25 Target Beli Murah, FMV Median, dan P75 Unit Pristine) untuk seluruh varian smartphone.</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="hero-appbar">
+        <div class="hero-title">3-Tier Price Corridors & Quantiles</div>
+        <div class="hero-subtitle">
+            Monitoring koridor harga 3-tingkat kuantil statistik (P25 Target Beli Murah, FMV Median, dan P75 Unit Pristine) untuk seluruh smartphone beredar.
+        </div>
+        <div class="hero-tags">
+            <span class="hero-tag-pill">P25 Bargain Price</span>
+            <span class="hero-tag-pill">P50 FMV Median</span>
+            <span class="hero-tag-pill">P75 Pristine Benchmark</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     try:
         with get_db() as db:
@@ -543,31 +832,43 @@ elif menu == "3-Tier Price Corridors & Quantiles":
                     name="P25 Target Beli Murah",
                     x=subset["Varian & Storage"],
                     y=subset["P25_num"],
-                    marker_color="#93C5FD"
+                    marker_color="#93c5fd"
                 ))
                 fig_cor.add_trace(go.Bar(
                     name="FMV Nilai Pasar Wajar",
                     x=subset["Varian & Storage"],
                     y=subset["FMV_num"],
-                    marker_color="#2563EB"
+                    marker_color="#3b82f6"
                 ))
                 fig_cor.add_trace(go.Bar(
                     name="P75 Unit Pristine",
                     x=subset["Varian & Storage"],
                     y=subset["P75_num"],
-                    marker_color="#1E3A8A"
+                    marker_color="#1e3a8a"
                 ))
-                fig_cor.update_layout(barmode="group", xaxis_tickangle=-45, height=480, margin=dict(t=20, b=100, l=20, r=20))
+                fig_cor.update_layout(barmode="group", xaxis_tickangle=-45)
+                apply_dark_plotly_layout(fig_cor, height=480)
                 st.plotly_chart(fig_cor, use_container_width=True)
     except Exception as e:
         st.error(f"Terjadi kesalahan pada modul Price Corridors: {e}")
 
-# ==========================================
+# ==============================================================================
 # 4. ARBITRAGE & HOT DEALS RADAR
-# ==========================================
+# ==============================================================================
 elif menu == "Arbitrage & Hot Deals Radar":
-    st.markdown('<div class="main-header">Smartphone Arbitrage & Hot Deals Radar</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Pemindai listing smartphone sekunder dengan diskon di atas batas normal pasar (Peluang Arbitrase Reseller).</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="hero-appbar">
+        <div class="hero-title">Smartphone Arbitrage & Hot Deals Radar</div>
+        <div class="hero-subtitle">
+            Radar otomatis pendeteksi peluang beli murah di bawah harga wajar pasar (Undervalued Listing) untuk margin keuntungan optimal reseller smartphone.
+        </div>
+        <div class="hero-tags">
+            <span class="hero-tag-pill">Margin Arbitrase</span>
+            <span class="hero-tag-pill">Underpriced Alert</span>
+            <span class="hero-tag-pill">Anti-Scam Verified</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     try:
         with get_db() as db:
@@ -576,7 +877,13 @@ elif menu == "Arbitrage & Hot Deals Radar":
             deals = engine.find_hot_deals(discount_threshold_pct=float(disc_thresh))
 
             if deals:
-                st.success(f"Terverifikasi {len(deals)} unit peluang hot deals & arbitrase aktif.")
+                st.markdown(f"""
+                <div class="info-box-green">
+                    <div class="info-box-title">Terverifikasi {len(deals)} Unit Peluang Arbitrase & Hot Deals Aktif</div>
+                    <div class="info-box-desc">Seluruh listing telah melewati validasi non-DP dan verifikasi anti-HDC. Potensi keuntungan dihitung dari selisih harga penawaran terhadap FMV.</div>
+                </div>
+                """, unsafe_allow_html=True)
+
                 df_deals = pd.DataFrame(deals)
                 
                 display_df = df_deals[[
@@ -598,12 +905,23 @@ elif menu == "Arbitrage & Hot Deals Radar":
     except Exception as e:
         st.error(f"Terjadi kesalahan pada modul Arbitrage Radar: {e}")
 
-# ==========================================
+# ==============================================================================
 # 5. SPEC MATRIX & MODEL COMPARISON
-# ==========================================
+# ==============================================================================
 elif menu == "Spec Matrix & Model Comparison":
-    st.markdown('<div class="main-header">Smartphone Hardware Spec Matrix</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Bandingkan spesifikasi teknis mendalam antar model smartphone secara berdampingan (2010 - 2026).</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="hero-appbar">
+        <div class="hero-title">Smartphone Hardware Spec Matrix</div>
+        <div class="hero-subtitle">
+            Komparasi mendalam matriks spesifikasi hardware smartphone secara berdampingan: SoC, benchmark Antutu, panel display, setup kamera, dan pengisian daya (2010 - 2026).
+        </div>
+        <div class="hero-tags">
+            <span class="hero-tag-pill">2010 - 2026 Hardware Archive</span>
+            <span class="hero-tag-pill">SoC & Benchmark</span>
+            <span class="hero-tag-pill">Display & Camera Setup</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     try:
         with get_db() as db:
@@ -657,12 +975,23 @@ elif menu == "Spec Matrix & Model Comparison":
     except Exception as e:
         st.error(f"Terjadi kesalahan pada modul Spec Matrix: {e}")
 
-# ==========================================
+# ==============================================================================
 # 6. DATA EXPLORER & SCAM FILTER
-# ==========================================
+# ==============================================================================
 elif menu == "Data Explorer & Scam Filter":
-    st.markdown('<div class="main-header">Live Data Explorer & Scam Filter Monitor</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Jelajahi seluruh raw listing dan evaluasi performa filter anti-penipuan DP & HDC Palsu.</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="hero-appbar">
+        <div class="hero-title">Live Data Explorer & Scam Filter Monitor</div>
+        <div class="hero-subtitle">
+            Audit langsung listing mentah dari marketplace dan verifikasi efektivitas algoritma pendeteksi iklan pancingan DP & unit replika.
+        </div>
+        <div class="hero-tags">
+            <span class="hero-tag-pill">Audit Engine</span>
+            <span class="hero-tag-pill">Regex & NLP Detection</span>
+            <span class="hero-tag-pill">Clean Data Pipeline</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     try:
         with get_db() as db:
