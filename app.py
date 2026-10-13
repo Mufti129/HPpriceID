@@ -955,14 +955,14 @@ elif menu == "Spec Matrix & Model Comparison":
                             "Kapasitas Baterai", "Fast Charging Kabel", "Wireless Charging", "Konektivitas & NFC", "Sertifikasi IP Rating", "Berat Bodi"
                         ],
                         dev1_key: [
-                            m1.release_year, m1.chipset or "-", m1.cpu_architecture or "-", m1.gpu or "-", f"{m1.antutu_benchmark_score:,}" if m1.antutu_benchmark_score else "-",
+                            str(m1.release_year), m1.chipset or "-", m1.cpu_architecture or "-", m1.gpu or "-", f"{m1.antutu_benchmark_score:,}" if m1.antutu_benchmark_score else "-",
                             m1.display_type or "-", f"{m1.screen_size_inch} inci" if m1.screen_size_inch else "-", f"{m1.refresh_rate_hz} Hz", m1.resolution or "-", f"{m1.peak_brightness_nits} nits" if m1.peak_brightness_nits else "-",
                             m1.main_camera_mp or "-", m1.camera_setup or "-", f"OIS: {'Ya' if m1.has_ois else 'Tidak'} | {m1.optical_zoom_level or 'None'}", m1.selfie_camera_mp or "-",
                             f"{m1.battery_capacity_mah} mAh" if m1.battery_capacity_mah else "-", f"{m1.fast_charging_watt} Watt", f"{'Ya (' + str(m1.wireless_charging_watt) + 'W)' if m1.has_wireless_charging else 'Tidak'}",
                             f"{m1.network_gen} | NFC: {'Ya' if m1.has_nfc else 'Tidak'}", m1.ip_rating or "-", f"{m1.weight_grams} gram" if m1.weight_grams else "-"
                         ],
                         dev2_key: [
-                            m2.release_year, m2.chipset or "-", m2.cpu_architecture or "-", m2.gpu or "-", f"{m2.antutu_benchmark_score:,}" if m2.antutu_benchmark_score else "-",
+                            str(m2.release_year), m2.chipset or "-", m2.cpu_architecture or "-", m2.gpu or "-", f"{m2.antutu_benchmark_score:,}" if m2.antutu_benchmark_score else "-",
                             m2.display_type or "-", f"{m2.screen_size_inch} inci" if m2.screen_size_inch else "-", f"{m2.refresh_rate_hz} Hz", m2.resolution or "-", f"{m2.peak_brightness_nits} nits" if m2.peak_brightness_nits else "-",
                             m2.main_camera_mp or "-", m2.camera_setup or "-", f"OIS: {'Ya' if m2.has_ois else 'Tidak'} | {m2.optical_zoom_level or 'None'}", m2.selfie_camera_mp or "-",
                             f"{m2.battery_capacity_mah} mAh" if m2.battery_capacity_mah else "-", f"{m2.fast_charging_watt} Watt", f"{'Ya (' + str(m2.wireless_charging_watt) + 'W)' if m2.has_wireless_charging else 'Tidak'}",
