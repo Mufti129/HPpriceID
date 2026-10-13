@@ -1015,14 +1015,62 @@ def seed_master_catalog():
                         db.add(variant)
                         variant_count += 1
 
-        # Proses Katalog Tambahan (Expansion 2010 - 2026)
+        # Ingestion Modular untuk Seluruh Batch Tambahan (Batch 1 - 4)
+        batch_sources = []
         try:
             from data.additional_catalog_data import ADDITIONAL_CATALOG_MODELS
-            for b_entry in ADDITIONAL_CATALOG_MODELS:
+            batch_sources.append(("Batch 1 (Additional)", ADDITIONAL_CATALOG_MODELS))
+        except ImportError:
+            pass
+
+        try:
+            from data.extended_catalog_batch2 import EXTENDED_CATALOG_MODELS_BATCH2
+            batch_sources.append(("Batch 2 (Extended)", EXTENDED_CATALOG_MODELS_BATCH2))
+        except ImportError:
+            pass
+
+        try:
+            from data.extended_catalog_batch3 import EXTENDED_CATALOG_MODELS_BATCH3
+            batch_sources.append(("Batch 3 (Extended)", EXTENDED_CATALOG_MODELS_BATCH3))
+        except ImportError:
+            pass
+
+        try:
+            from data.extended_catalog_batch4 import EXTENDED_CATALOG_MODELS_BATCH4
+            batch_sources.append(("Batch 4 (Extended)", EXTENDED_CATALOG_MODELS_BATCH4))
+        except ImportError:
+            pass
+
+        brand_meta_map = {
+            "Apple": {"country": "United States", "tier": "Flagship-Dominant"},
+            "Samsung": {"country": "South Korea", "tier": "All-Segment-Leader"},
+            "Xiaomi": {"country": "China", "tier": "Value-Performance"},
+            "Oppo": {"country": "China", "tier": "Mainstream-Camera"},
+            "Vivo": {"country": "China", "tier": "Mainstream-Portrait"},
+            "Realme": {"country": "China", "tier": "Youth-Performance"},
+            "Infinix": {"country": "Hong Kong / China", "tier": "Budget-Gaming"},
+            "Tecno": {"country": "Hong Kong / China", "tier": "Budget-Disruptor"},
+            "iQOO": {"country": "China", "tier": "Gaming-Flagship"},
+            "Google": {"country": "United States", "tier": "Software-Flagship"},
+            "Sony": {"country": "Japan", "tier": "Pro-Multimedia"},
+            "Huawei": {"country": "China", "tier": "Imaging-Pioneer"},
+            "Asus": {"country": "Taiwan", "tier": "Gaming-Enthusiast"},
+            "Nothing": {"country": "United Kingdom", "tier": "Design-Innovator"},
+            "BlackBerry": {"country": "Canada", "tier": "Legacy-Enterprise"},
+            "Nokia": {"country": "Finland", "tier": "Legacy-Global"}
+        }
+
+        for batch_name, batch_entries in batch_sources:
+            for b_entry in batch_entries:
                 brand_name = b_entry["brand_name"]
                 brand = db.query(MasterBrand).filter(MasterBrand.name == brand_name).first()
                 if not brand:
-                    brand = MasterBrand(name=brand_name, country_origin="International", tier_category="Mainstream")
+                    b_meta = brand_meta_map.get(brand_name, {})
+                    brand = MasterBrand(
+                        name=brand_name,
+                        country_origin=b_meta.get("country", "International"),
+                        tier_category=b_meta.get("tier", "Mainstream")
+                    )
                     db.add(brand)
                     db.flush()
                     brand_count += 1
@@ -1068,6 +1116,11 @@ def seed_master_catalog():
                         db.add(model)
                         db.flush()
                         model_count += 1
+                    else:
+                        if model_info.get("chipset") and not model.chipset:
+                            model.chipset = model_info.get("chipset")
+                        if model_info.get("antutu_benchmark_score") and not model.antutu_benchmark_score:
+                            model.antutu_benchmark_score = model_info.get("antutu_benchmark_score")
 
                     for v_info in model_info["variants"]:
                         variant = db.query(MasterVariant).filter(
@@ -1086,8 +1139,6 @@ def seed_master_catalog():
                             )
                             db.add(variant)
                             variant_count += 1
-        except ImportError:
-            pass
 
         db.commit()
         print(f"[SUCCESS] Seeding Berhasil: {brand_count} Brand Baru Ditambahkan, Total Model Baru: {model_count}, Total Varian Baru: {variant_count}")

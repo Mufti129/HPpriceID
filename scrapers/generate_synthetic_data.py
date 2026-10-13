@@ -38,19 +38,25 @@ TITLES_TEMPLATES = [
     "{model} {storage}gb {dp_trap} promo murah cuci gudang"
 ]
 
-def generate_realistic_market_dataset(target_count_per_variant: int = 15):
+def generate_realistic_market_dataset(target_count_per_variant: int = 15, only_missing: bool = True):
     init_db()
     db = SessionLocal()
     matcher = SmartphoneEntityMatcher(db)
 
-    variants = db.query(MasterVariant, MasterModel, MasterBrand).join(
+    query = db.query(MasterVariant, MasterModel, MasterBrand).join(
         MasterModel, MasterVariant.model_id == MasterModel.id
     ).join(
         MasterBrand, MasterModel.brand_id == MasterBrand.id
-    ).all()
+    )
+
+    if only_missing:
+        existing_var_ids = set(v[0] for v in db.query(ScrapedListing.matched_variant_id).filter(ScrapedListing.matched_variant_id.isnot(None)).distinct().all())
+        variants = [v for v in query.all() if v[0].id not in existing_var_ids]
+    else:
+        variants = query.all()
 
     if not variants:
-        print("[ERROR] Master catalog kosong! Jalankan seed_master_catalog terlebih dahulu.")
+        print("[INFO] Semua varian sudah memiliki listing pasar. Tidak ada listing baru yang digenerate.")
         return
 
     print(f"Generating realistic listings for {len(variants)} smartphone variants...")
@@ -123,9 +129,8 @@ def generate_realistic_market_dataset(target_count_per_variant: int = 15):
                 "seller_type": random.choice(["Individual", "Store / Toko HP"])
             })
 
-            var_id, conf, matched_name, _ = matcher.match(norm["title"], norm["storage_gb"])
-            if not var_id:
-                var_id = var.id
+            # Tetapkan ID varian target secara pasti
+            var_id = var.id
 
             is_scam_eval, _, _ = SmartphoneScamDetector.evaluate_listing(
                 norm["price"], norm["title"], norm["raw_description"], expected_msrp=msrp
