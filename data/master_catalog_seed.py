@@ -4,8 +4,14 @@ Mencakup 16 Brand Utama: Apple, Samsung, Xiaomi, Poco, Redmi, Oppo, Vivo, iQOO,
 Realme, Infinix, Tecno, Google Pixel, Asus, Sony, Huawei, Nokia, BlackBerry, ZTE/RedMagic, Nothing.
 Format profesional dan bersih dari ikon/simbol informal.
 """
+import re
 from models.database import SessionLocal, init_db
 from models.catalog import MasterBrand, MasterModel, MasterVariant
+
+def _slugify(text: str) -> str:
+    s = text.lower().strip()
+    s = re.sub(r'[^a-z0-9]+', '_', s)
+    return s.strip('_')
 
 MASTER_CATALOG_2010_2026 = [
     # ==================== 1. APPLE (2010 - 2026) ====================
@@ -986,7 +992,8 @@ def seed_master_catalog():
                         has_nfc=model_info.get("has_nfc", True),
                         ip_rating=model_info.get("ip_rating", "IP68"),
                         weight_grams=model_info.get("weight_grams"),
-                        os_at_launch=model_info.get("os_at_launch")
+                        os_at_launch=model_info.get("os_at_launch"),
+                        image_url=model_info.get("image_url") or f"assets/phones/{_slugify(brand.name)}_{_slugify(model_info['name'])}.svg"
                     )
                     db.add(model)
                     db.flush()
@@ -996,6 +1003,8 @@ def seed_master_catalog():
                     model.chipset = model_info.get("chipset") or model.chipset
                     model.antutu_benchmark_score = model_info.get("antutu_benchmark_score") or model.antutu_benchmark_score
                     model.release_year = model_info["release_year"]
+                    if not model.image_url:
+                        model.image_url = f"assets/phones/{_slugify(brand.name)}_{_slugify(model_info['name'])}.svg"
 
                 for v_info in model_info["variants"]:
                     variant = db.query(MasterVariant).filter(
@@ -1010,10 +1019,13 @@ def seed_master_catalog():
                             ram_gb=v_info.get("ram_gb"),
                             storage_gb=v_info["storage_gb"],
                             official_msrp_new=v_info["official_msrp_new"],
-                            aliases=v_info.get("aliases")
+                            aliases=v_info.get("aliases"),
+                            image_url=v_info.get("image_url") or model.image_url
                         )
                         db.add(variant)
                         variant_count += 1
+                    elif not variant.image_url:
+                        variant.image_url = model.image_url
 
         # Ingestion Modular untuk Seluruh Batch Tambahan (Batch 1 - 4)
         batch_sources = []
@@ -1117,7 +1129,8 @@ def seed_master_catalog():
                             has_nfc=model_info.get("has_nfc", True),
                             ip_rating=model_info.get("ip_rating", "IP68"),
                             weight_grams=model_info.get("weight_grams"),
-                            os_at_launch=model_info.get("os_at_launch")
+                            os_at_launch=model_info.get("os_at_launch"),
+                            image_url=model_info.get("image_url") or f"assets/phones/{_slugify(brand.name)}_{_slugify(model_info['name'])}.svg"
                         )
                         db.add(model)
                         db.flush()
@@ -1127,6 +1140,8 @@ def seed_master_catalog():
                             model.chipset = model_info.get("chipset")
                         if model_info.get("antutu_benchmark_score") and not model.antutu_benchmark_score:
                             model.antutu_benchmark_score = model_info.get("antutu_benchmark_score")
+                        if not model.image_url:
+                            model.image_url = f"assets/phones/{_slugify(brand.name)}_{_slugify(model_info['name'])}.svg"
 
                     for v_info in model_info["variants"]:
                         variant = db.query(MasterVariant).filter(
@@ -1141,10 +1156,13 @@ def seed_master_catalog():
                                 ram_gb=v_info.get("ram_gb"),
                                 storage_gb=v_info["storage_gb"],
                                 official_msrp_new=v_info["official_msrp_new"],
-                                aliases=v_info.get("aliases")
+                                aliases=v_info.get("aliases"),
+                                image_url=v_info.get("image_url") or model.image_url
                             )
                             db.add(variant)
                             variant_count += 1
+                        elif not variant.image_url:
+                            variant.image_url = model.image_url
 
         db.commit()
         print(f"[SUCCESS] Seeding Berhasil: {brand_count} Brand Baru Ditambahkan, Total Model Baru: {model_count}, Total Varian Baru: {variant_count}")

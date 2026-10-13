@@ -1,5 +1,6 @@
 import os
 import sys
+from pathlib import Path
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -8,7 +9,9 @@ import plotly.graph_objects as go
 from sqlalchemy.orm import Session
 
 # Setup Path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+ROOT_DIR = Path(__file__).resolve().parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 from models.database import SessionLocal, init_db
 from models.catalog import MasterBrand, MasterModel, MasterVariant, ScrapedListing, MarketPriceStats
@@ -374,8 +377,65 @@ st.markdown("""
         color: #cbd5e1;
         line-height: 1.4;
     }
+
+    /* Phone Image Showcase Card */
+    .phone-img-container {
+        background: #0f172a;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 14px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    .phone-showcase-card {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        padding: 14px;
+        text-align: center;
+        margin-bottom: 12px;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .phone-showcase-card:hover {
+        border-color: #38bdf8;
+        transform: translateY(-2px);
+    }
+    .phone-showcase-title {
+        font-size: 0.88rem;
+        font-weight: 800;
+        color: #f8fafc;
+        margin-top: 8px;
+    }
+    .phone-showcase-price {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.86rem;
+        font-weight: 700;
+        color: #38bdf8;
+        margin-top: 4px;
+    }
+    .phone-showcase-meta {
+        font-size: 0.74rem;
+        color: #94a3b8;
+        margin-top: 2px;
+    }
 </style>
 """, unsafe_allow_html=True)
+
+def get_phone_asset_path(image_url: str | None) -> str | None:
+    """Mengembalikan path file gambar lokal yang valid atau None."""
+    if not image_url:
+        return None
+    p = Path(image_url)
+    if p.exists():
+        return str(p)
+    p_rel = ROOT_DIR / image_url
+    if p_rel.exists():
+        return str(p_rel)
+    return None
 
 # Helper function for dark theme Plotly styling
 def apply_dark_plotly_layout(fig, height=420):
@@ -445,6 +505,32 @@ menu = st.sidebar.radio(
     ],
     index=0
 )
+
+with st.sidebar.expander("Inspeksi Visual Unit (Quick Preview)", expanded=False):
+    try:
+        with get_db() as sb_db:
+            sb_brands = [b.name for b in sb_db.query(MasterBrand).order_by(MasterBrand.name).all()]
+            if sb_brands:
+                sb_brand = st.selectbox("Brand:", sb_brands, key="sb_quick_brand")
+                sb_b_obj = sb_db.query(MasterBrand).filter(MasterBrand.name == sb_brand).first()
+                sb_models = sb_db.query(MasterModel).filter(MasterModel.brand_id == sb_b_obj.id).order_by(MasterModel.release_year.desc()).all() if sb_b_obj else []
+                if sb_models:
+                    sb_model_names = [m.name for m in sb_models]
+                    sb_model_name = st.selectbox("Model:", sb_model_names, key="sb_quick_model")
+                    sb_m_obj = next((m for m in sb_models if m.name == sb_model_name), sb_models[0])
+                    if sb_m_obj:
+                        sb_img = get_phone_asset_path(sb_m_obj.image_url)
+                        if sb_img:
+                            st.image(sb_img, use_container_width=True)
+                        st.markdown(f"""
+                        <div style="font-size:0.75rem; color:#94a3b8; line-height:1.45; margin-top:4px;">
+                            <b style="color:#f8fafc;">{sb_brand} {sb_m_obj.name}</b> ({sb_m_obj.release_year})<br>
+                            Chipset: <span style="color:#60a5fa;">{sb_m_obj.chipset or '-'}</span><br>
+                            Kamera: <span style="color:#34d399;">{sb_m_obj.main_camera_mp or '-'}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+    except Exception as e:
+        pass
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("""
@@ -553,6 +639,31 @@ if menu == "Market Overview & Dashboard":
                 </div>
             </div>
             """, unsafe_allow_html=True)
+
+            st.markdown("### Visual Showcase Perangkat Flagship & Best-Seller Pasar")
+            showcase_targets = [
+                ("Apple", "iPhone 15 Pro Max"),
+                ("Samsung", "Galaxy S24 Ultra"),
+                ("Xiaomi", "Xiaomi 14"),
+                ("Google Pixel", "Pixel 8 Pro")
+            ]
+            cols_showcase = st.columns(4)
+            for idx, (sh_col, (sh_brand, sh_name)) in enumerate(zip(cols_showcase, showcase_targets)):
+                with sh_col:
+                    sh_m = db.query(MasterModel).join(MasterBrand).filter(MasterBrand.name == sh_brand, MasterModel.name == sh_name).first()
+                    if sh_m:
+                        sh_img = get_phone_asset_path(sh_m.image_url)
+                        if sh_img:
+                            st.image(sh_img, use_container_width=True)
+                        sh_var = db.query(MasterVariant).filter(MasterVariant.model_id == sh_m.id).first()
+                        msrp_val = float(sh_var.official_msrp_new) if sh_var else 0
+                        st.markdown(f"""
+                        <div class="phone-showcase-card">
+                            <div class="phone-showcase-title">{sh_brand} {sh_m.name}</div>
+                            <div class="phone-showcase-price">MSRP Rp {msrp_val:,.0f}</div>
+                            <div class="phone-showcase-meta">{sh_m.chipset or '-'} | {sh_m.release_year}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
             col_left, col_right = st.columns(2)
 
@@ -683,6 +794,9 @@ elif menu == "FMV & Hedonic Calculator":
                 col_specs, col_inputs = st.columns([1.1, 1.9])
 
                 with col_specs:
+                    img_path = get_phone_asset_path(model_obj.image_url)
+                    if img_path:
+                        st.image(img_path, caption=f"{selected_brand} {model_obj.name} ({model_obj.release_year})", use_container_width=True)
                     st.markdown(f"""
                     <div class="spec-card-container">
                         <div class="spec-card-header">Spesifikasi Bawaan Pabrik</div>
@@ -865,6 +979,25 @@ elif menu == "3-Tier Price Corridors & Quantiles":
              .join(MasterBrand, MasterModel.brand_id == MasterBrand.id)\
              .order_by(MasterModel.release_year.desc(), MasterBrand.name).all()
 
+            all_brands = sorted(list(set([v.brand_name for v in variants])))
+            sel_brand_filter = st.selectbox("Filter Merk Smartphone:", ["Semua Merk"] + all_brands)
+            if sel_brand_filter != "Semua Merk":
+                variants = [v for v in variants if v.brand_name == sel_brand_filter]
+                brand_lead_model = db.query(MasterModel).join(MasterBrand).filter(MasterBrand.name == sel_brand_filter).order_by(MasterModel.release_year.desc()).first()
+                if brand_lead_model:
+                    lead_img = get_phone_asset_path(brand_lead_model.image_url)
+                    if lead_img:
+                        col_l1, col_l2 = st.columns([1, 4])
+                        with col_l1:
+                            st.image(lead_img, caption=f"{sel_brand_filter} {brand_lead_model.name}", use_container_width=True)
+                        with col_l2:
+                            st.markdown(f"""
+                            <div class="info-box-blue" style="margin-top:10px;">
+                                <div class="info-box-title">Model Referensi Utama: {sel_brand_filter} {brand_lead_model.name} ({brand_lead_model.release_year})</div>
+                                <div class="info-box-desc">SoC: {brand_lead_model.chipset or '-'} | Layar: {brand_lead_model.display_type or '-'} | Kamera: {brand_lead_model.main_camera_mp or '-'}</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+
             engine = SmartphonePricingEngine(db)
             table_rows = []
 
@@ -972,6 +1105,26 @@ elif menu == "Arbitrage & Hot Deals Radar":
                 </div>
                 """, unsafe_allow_html=True)
 
+                top_deals = deals[:3]
+                if top_deals:
+                    st.markdown("### Top Peluang Arbitrase Unggulan")
+                    cols_deal = st.columns(min(len(top_deals), 3))
+                    for cd, deal_item in zip(cols_deal, top_deals):
+                        with cd:
+                            d_model = db.query(MasterModel).filter(MasterModel.name == deal_item["model"]).first()
+                            if d_model:
+                                d_img = get_phone_asset_path(d_model.image_url)
+                                if d_img:
+                                    st.image(d_img, use_container_width=True)
+                            st.markdown(f"""
+                            <div class="phone-showcase-card">
+                                <div class="phone-showcase-title">{deal_item['brand']} {deal_item['model']}</div>
+                                <div class="phone-showcase-price">Rp {deal_item['price']:,.0f} <span style="color:#ef4444; font-size:0.75rem;">(-{deal_item['discount_pct']:.1f}%)</span></div>
+                                <div class="phone-showcase-meta">FMV: Rp {deal_item['fmv_price']:,.0f} | Margin: Rp {deal_item['potential_profit']:,.0f}</div>
+                                <div style="margin-top:6px;"><span class="status-pill" style="font-size:0.65rem;">{deal_item['deal_tier']}</span></div>
+                            </div>
+                            """, unsafe_allow_html=True)
+
                 df_deals = pd.DataFrame(deals)
                 
                 display_df = df_deals[[
@@ -1035,6 +1188,16 @@ elif menu == "Spec Matrix & Model Comparison":
                 m2 = db.query(MasterModel).filter(MasterModel.id == id2).first()
 
                 if m1 and m2:
+                    col_img1, col_img2 = st.columns(2)
+                    with col_img1:
+                        img1 = get_phone_asset_path(m1.image_url)
+                        if img1:
+                            st.image(img1, caption=dev1_key, use_container_width=True)
+                    with col_img2:
+                        img2 = get_phone_asset_path(m2.image_url)
+                        if img2:
+                            st.image(img2, caption=dev2_key, use_container_width=True)
+
                     spec_data = {
                         "Parameter Spesifikasi Hardware": [
                             "Tahun Peluncuran", "Chipset / SoC", "CPU Cores & Arch", "GPU Grafis", "Antutu Benchmark Score",
