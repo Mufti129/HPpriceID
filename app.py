@@ -328,6 +328,52 @@ st.markdown("""
         background: #10b981;
         border-radius: 50%;
     }
+
+    /* Sidebar Expander & Information Cards */
+    section[data-testid="stSidebar"] div[data-testid="stExpander"] {
+        background-color: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        margin-top: 8px;
+        margin-bottom: 8px;
+        overflow: hidden;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stExpander"] summary {
+        color: #f8fafc !important;
+        font-weight: 700;
+        font-size: 0.82rem;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stExpander"] summary:hover {
+        color: #60a5fa !important;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stExpander"] div[data-testid="stExpanderDetails"] {
+        padding: 10px 12px;
+        border-top: 1px solid #334155;
+        background-color: #0f172a;
+        font-size: 0.78rem;
+        line-height: 1.5;
+        color: #cbd5e1;
+    }
+    .sidebar-source-card {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        padding: 8px 10px;
+        margin-bottom: 8px;
+    }
+    .sidebar-source-title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #60a5fa;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 3px;
+    }
+    .sidebar-source-body {
+        font-size: 0.76rem;
+        color: #cbd5e1;
+        line-height: 1.4;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -401,6 +447,48 @@ menu = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
+st.sidebar.markdown("""
+<div style="font-size: 0.74rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
+    Integritas & Referensi Data
+</div>
+""", unsafe_allow_html=True)
+
+with st.sidebar.expander("Sumber Pengambilan & Validasi Data", expanded=False):
+    st.markdown("""
+<div class="sidebar-source-card">
+    <div class="sidebar-source-title">1. Spesifikasi Teknis Hardware</div>
+    <div class="sidebar-source-body">
+        <b>GSMArena & Kimovil:</b> Arsitektur chipset, RAM/Storage SKU, tipe panel layar (LTPO/AMOLED/IPS), sensor kamera & OIS, kapasitas baterai.<br>
+        <b>Portal Resmi Vendor ID:</b> Verifikasi spesifikasi SKU resmi Indonesia (Samsung, Apple iBox/Digimap, Xiaomi, Oppo, Vivo, Realme, Infinix, Tecno, Asus).
+    </div>
+</div>
+
+<div class="sidebar-source-card">
+    <div class="sidebar-source-title">2. MSRP Rilis Perdana Indonesia</div>
+    <div class="sidebar-source-body">
+        <b>Media Otoritatif:</b> Kompas Tekno, JagatReview, DroidLime untuk arsip harga rekomendasi ritel peluncuran perdana.<br>
+        <b>Distributor Resmi:</b> Erajaya Swasembada / Eraspace / TAM / Digimap / iBox untuk verifikasi harga unit bergaransi nasional.
+    </div>
+</div>
+
+<div class="sidebar-source-card">
+    <div class="sidebar-source-title">3. Listing Pasar Sekunder Realistis</div>
+    <div class="sidebar-source-body">
+        <b>Marketplace:</b> OLX Indonesia, Tokopedia, Shopee, Facebook Marketplace regional.<br>
+        <b>Cakupan Wilayah:</b> 13 kota sentra perdagangan HP bekas (Jabodetabek, Bandung, Surabaya, Semarang, Yogyakarta, Malang, Medan, Makassar, Denpasar).
+    </div>
+</div>
+
+<div class="sidebar-source-card">
+    <div class="sidebar-source-title">4. Validasi & Filter Kualitas</div>
+    <div class="sidebar-source-body">
+        <b>NLP Normalizer:</b> Verifikasi IMEI Kemenperin/Bea Cukai, garansi resmi vs inter, Battery Health %, dan kelengkapan.<br>
+        <b>Tukey IQR Filter:</b> Eliminasi harga anomali ekstrem dan perangkap uang muka (DP trap semu).<br>
+        <b>Lancaster Hedonic Model:</b> Penyesuaian harga pasar riil berdasarkan grade fisik dan fungsi komponen.
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
 st.sidebar.markdown(
     """
     **Metodologi Valuasi:**
@@ -992,6 +1080,39 @@ elif menu == "Data Explorer & Scam Filter":
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    with st.expander("Audit Protokol: Sumber Pengambilan & Validasi Data", expanded=False):
+        st.markdown("""
+        <div class="info-box-blue">
+            <div class="info-box-title">Sumber Pengambilan & Tata Kelola Data Katalog (2010 - 2026)</div>
+            <div class="info-box-desc">
+                Seluruh data spesifikasi teknis dan histori pasar dikurasi dan divalidasi silang melalui sumber-sumber otoritatif berikut:
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        col_s1, col_s2, col_s3 = st.columns(3)
+        with col_s1:
+            st.markdown("""
+            **1. Spesifikasi Teknis Hardware:**
+            - **GSMArena Database** (`gsmarena.com`): Verifikasi chipset, arsitektur CPU, tipe display (LTPO/AMOLED/IPS), sensor kamera & OIS, baterai, IP rating.
+            - **Kimovil Benchmark** (`kimovil.com`): Validasi AnTuTu benchmark v9/v10, screen-to-body ratio.
+            - **Portal Resmi Vendor ID**: Samsung, Apple (iBox/Digimap), Xiaomi, Oppo, Vivo, Realme, Infinix, Tecno, Asus.
+            """)
+        with col_s2:
+            st.markdown("""
+            **2. MSRP Rilis Perdana Indonesia:**
+            - **Kompas Tekno** (`tekno.kompas.com`): Arsip pers peluncuran resmi dan MSRP ritel perdana di Indonesia.
+            - **JagatReview / JagatGadget** (`jagatreview.com`): Dokumentasi pengujian lab & verifikasi SKU resmi.
+            - **DroidLime** (`droidlime.com`): Arsip unboxing ritel resmi & harga rilis perdana.
+            - **Erajaya / Eraspace / TAM / Digimap**: Arsip katalog ritel nasional bergaransi resmi.
+            """)
+        with col_s3:
+            st.markdown("""
+            **3. Pasar Sekunder & Validasi:**
+            - **Secondary Marketplaces**: OLX Indonesia, Tokopedia, Shopee, FB Marketplace regional.
+            - **13 Sentra Perdagangan**: Jakarta, Tangerang, Bekasi, Bandung, Surabaya, Semarang, Yogya, Malang, Medan, Makassar, Denpasar.
+            - **Filter & Model**: Normalisasi NLP + Filter Outlier Tukey IQR + Model Lancaster Hedonic.
+            """)
 
     try:
         with get_db() as db:
