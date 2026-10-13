@@ -501,7 +501,8 @@ menu = st.sidebar.radio(
         "3-Tier Price Corridors & Quantiles",
         "Arbitrage & Hot Deals Radar",
         "Spec Matrix & Model Comparison",
-        "Data Explorer & Scam Filter"
+        "Data Explorer & Scam Filter",
+        "Master Katalog Smartphone (2010 - 2026)"
     ],
     index=0
 )
@@ -1310,3 +1311,172 @@ elif menu == "Data Explorer & Scam Filter":
                 st.info("Tidak ada data listing yang cocok.")
     except Exception as e:
         st.error(f"Terjadi kesalahan pada modul Data Explorer: {e}")
+
+# ==============================================================================
+# 7. MASTER KATALOG SMARTPHONE (2010 - 2026)
+# ==============================================================================
+elif menu == "Master Katalog Smartphone (2010 - 2026)":
+    st.markdown("""
+    <div class="hero-appbar">
+        <div class="hero-title">Master Katalog Smartphone Indonesia (2010 - 2026)</div>
+        <div class="hero-subtitle">
+            Basis data katalog resmi terverifikasi: 16 Brand, 315 Model, dan 465 Varian smartphone di pasar Indonesia lengkap dengan spesifikasi teknis hardware, MSRP rilis perdana, dan aset visual produk.
+        </div>
+        <div class="hero-tags">
+            <span class="hero-tag-pill">16 Brand Terdaftar</span>
+            <span class="hero-tag-pill">315 Model Terverifikasi</span>
+            <span class="hero-tag-pill">465 Varian RAM & Storage</span>
+            <span class="hero-tag-pill">Arsip 2010 - 2026</span>
+            <span class="hero-tag-pill">Export Ready</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    try:
+        with get_db() as db:
+            total_m = db.query(MasterModel).count()
+            total_v = db.query(MasterVariant).count()
+            total_b = db.query(MasterBrand).count()
+
+            st.markdown(f"""
+            <div class="kpi-grid">
+                <div class="pro-metric-card">
+                    <div class="pro-metric-label">Total Model HP Terdaftar</div>
+                    <div class="pro-metric-val">{total_m} Model</div>
+                    <div class="pro-metric-sub">Katalog Terverifikasi</div>
+                </div>
+                <div class="pro-metric-card emerald">
+                    <div class="pro-metric-label">Total Konfigurasi Varian</div>
+                    <div class="pro-metric-val">{total_v} Varian</div>
+                    <div class="pro-metric-sub emerald">Kombinasi RAM & Storage</div>
+                </div>
+                <div class="pro-metric-card purple">
+                    <div class="pro-metric-label">Cakupan Merk / Brand</div>
+                    <div class="pro-metric-val">{total_b} Brand</div>
+                    <div class="pro-metric-sub purple">Pasar Resmi Indonesia</div>
+                </div>
+                <div class="pro-metric-card rose">
+                    <div class="pro-metric-label">Rentang Periode Rilis</div>
+                    <div class="pro-metric-val">2010 - 2026</div>
+                    <div class="pro-metric-sub rose">16 Tahun Sejarah Gadget ID</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Filter Controls
+            col_f1, col_f2, col_f3 = st.columns([1.5, 1.5, 2.0])
+            with col_f1:
+                all_b_names = ["Semua Brand"] + [b.name for b in db.query(MasterBrand).order_by(MasterBrand.name).all()]
+                filter_brand = st.selectbox("Filter Brand:", all_b_names, key="katalog_brand")
+
+            with col_f2:
+                year_range = st.slider("Rentang Tahun Rilis:", min_value=2010, max_value=2026, value=(2010, 2026), key="katalog_year")
+
+            with col_f3:
+                search_query = st.text_input("Cari Model, Seri, atau Chipset:", placeholder="e.g. Pro Max, Snapdragon, Dimensity...", key="katalog_search")
+
+            # Build query
+            q = db.query(MasterModel, MasterBrand).join(MasterBrand, MasterModel.brand_id == MasterBrand.id)
+            if filter_brand != "Semua Brand":
+                q = q.filter(MasterBrand.name == filter_brand)
+            q = q.filter(MasterModel.release_year >= year_range[0], MasterModel.release_year <= year_range[1])
+
+            if search_query:
+                pattern = f"%{search_query.strip()}%"
+                q = q.filter(
+                    (MasterModel.name.ilike(pattern)) |
+                    (MasterModel.chipset.ilike(pattern)) |
+                    (MasterModel.series.ilike(pattern)) |
+                    (MasterBrand.name.ilike(pattern))
+                )
+
+            filtered_models = q.order_by(MasterModel.release_year.desc(), MasterBrand.name, MasterModel.name).all()
+
+            view_mode = st.radio("Pilih Format Tampilan:", ["Tampilan Galeri Visual Produk", "Tabel Database Spesifikasi Lengkap"], horizontal=True, key="katalog_view_mode")
+
+            st.markdown(f"**Menampilkan {len(filtered_models)} model smartphone yang sesuai filter:**")
+
+            if not filtered_models:
+                st.info("Tidak ada model smartphone yang cocok dengan filter yang dipilih.")
+            elif view_mode == "Tampilan Galeri Visual Produk":
+                grid_cols = st.columns(3)
+                for idx, (m_item, b_item) in enumerate(filtered_models):
+                    col_target = grid_cols[idx % 3]
+                    with col_target:
+                        img_path = get_phone_asset_path(m_item.image_url)
+                        if img_path:
+                            st.image(img_path, use_container_width=True)
+
+                        vars_m = db.query(MasterVariant).filter(MasterVariant.model_id == m_item.id).order_by(MasterVariant.storage_gb).all()
+                        msrp_strs = []
+                        for v in vars_m:
+                            msrp_strs.append(f"• {v.variant_name}: Rp {float(v.official_msrp_new):,.0f}")
+                        msrp_block = "<br>".join(msrp_strs) if msrp_strs else "MSRP belum terdata"
+
+                        st.markdown(f"""
+                        <div class="phone-showcase-card" style="text-align:left; margin-bottom:18px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span class="status-pill" style="font-size:0.65rem;">{b_item.name}</span>
+                                <span style="font-family:'JetBrains Mono', monospace; font-size:0.80rem; color:#94a3b8; font-weight:700;">{m_item.release_year}</span>
+                            </div>
+                            <div class="phone-showcase-title" style="font-size:1.05rem; margin-top:6px;">{b_item.name} {m_item.name}</div>
+                            <div style="font-size:0.78rem; color:#cbd5e1; margin-top:6px; line-height:1.5;">
+                                <b>SoC:</b> <span style="color:#60a5fa;">{m_item.chipset or '-'}</span><br>
+                                <b>Display:</b> {m_item.display_type or '-'} ({m_item.refresh_rate_hz}Hz)<br>
+                                <b>Kamera:</b> {m_item.main_camera_mp or '-'} (OIS: {'Ya' if m_item.has_ois else 'Tidak'})<br>
+                                <b>Baterai:</b> {m_item.battery_capacity_mah or '-'} mAh ({m_item.fast_charging_watt}W)<br>
+                                <b>Konektivitas:</b> {m_item.network_gen} | NFC: {'Ya' if m_item.has_nfc else 'Tidak'} | {m_item.ip_rating}
+                            </div>
+                            <div style="margin-top:10px; padding-top:8px; border-top:1px solid #334155; font-size:0.75rem; color:#94a3b8;">
+                                <b style="color:#f8fafc;">Varian & MSRP Peluncuran Resmi:</b><br>
+                                <span style="color:#38bdf8;">{msrp_block}</span>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+            else:
+                rows_db = []
+                for m_item, b_item in filtered_models:
+                    vars_m = db.query(MasterVariant).filter(MasterVariant.model_id == m_item.id).order_by(MasterVariant.storage_gb).all()
+                    min_msrp = min([float(v.official_msrp_new) for v in vars_m]) if vars_m else 0
+                    max_msrp = max([float(v.official_msrp_new) for v in vars_m]) if vars_m else 0
+                    var_summary = ", ".join([f"{v.storage_gb}GB" for v in vars_m]) if vars_m else "-"
+                    msrp_str = f"Rp {min_msrp:,.0f}" if min_msrp == max_msrp else f"Rp {min_msrp:,.0f} - Rp {max_msrp:,.0f}"
+
+                    rows_db.append({
+                        "Brand": b_item.name,
+                        "Model": m_item.name,
+                        "Seri": m_item.series or "-",
+                        "Tahun Rilis": m_item.release_year,
+                        "MSRP Rilis Perdana": msrp_str,
+                        "Varian Storage": var_summary,
+                        "Chipset / SoC": m_item.chipset or "-",
+                        "Antutu v10": f"{m_item.antutu_benchmark_score:,}" if m_item.antutu_benchmark_score else "-",
+                        "Tipe Layar": m_item.display_type or "-",
+                        "Ukuran Layar": f"{m_item.screen_size_inch} inch" if m_item.screen_size_inch else "-",
+                        "Refresh Rate": f"{m_item.refresh_rate_hz} Hz",
+                        "Resolusi": m_item.resolution or "-",
+                        "Kamera Utama": m_item.main_camera_mp or "-",
+                        "Kamera Depan": m_item.selfie_camera_mp or "-",
+                        "Baterai": f"{m_item.battery_capacity_mah} mAh" if m_item.battery_capacity_mah else "-",
+                        "Fast Charging": f"{m_item.fast_charging_watt}W",
+                        "Wireless Charge": f"{m_item.wireless_charging_watt}W" if m_item.has_wireless_charging else "Tidak",
+                        "Jaringan": m_item.network_gen,
+                        "NFC": "Ya" if m_item.has_nfc else "Tidak",
+                        "IP Rating": m_item.ip_rating or "-",
+                        "Berat": f"{m_item.weight_grams}g" if m_item.weight_grams else "-",
+                        "OS Awal": m_item.os_at_launch or "-"
+                    })
+
+                df_catalog = pd.DataFrame(rows_db)
+                st.dataframe(df_catalog, use_container_width=True, hide_index=True)
+
+                csv_data = df_catalog.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="Download Data Master Katalog (CSV)",
+                    data=csv_data,
+                    file_name="master_katalog_smartphone_indonesia.csv",
+                    mime="text/csv"
+                )
+    except Exception as e:
+        st.error(f"Terjadi kesalahan pada modul Master Katalog: {e}")
+
