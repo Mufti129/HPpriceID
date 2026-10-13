@@ -1041,6 +1041,12 @@ def seed_master_catalog():
         except ImportError:
             pass
 
+        try:
+            from data.extended_catalog_batch5 import EXTENDED_CATALOG_MODELS_BATCH5
+            batch_sources.append(("Batch 5 (Extended)", EXTENDED_CATALOG_MODELS_BATCH5))
+        except ImportError:
+            pass
+
         brand_meta_map = {
             "Apple": {"country": "United States", "tier": "Flagship-Dominant"},
             "Samsung": {"country": "South Korea", "tier": "All-Segment-Leader"},
