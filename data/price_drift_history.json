@@ -1,0 +1,223 @@
+[
+  {
+    "timestamp": "2026-10-14T10:14:03.592031",
+    "total_variants_audited": 2574,
+    "price_drops_count": 1093,
+    "price_hikes_count": 893,
+    "alert_threshold_pct": 7.0,
+    "significant_drops": [
+      {
+        "variant_id": 62,
+        "product": "Apple iPhone 4 iPhone 4 16GB",
+        "old_avg": 50000.0,
+        "new_live": 25000.0,
+        "change_pct": -50.0
+      },
+      {
+        "variant_id": 9,
+        "product": "Apple iPhone 15 Pro iPhone 15 Pro 512GB",
+        "old_avg": 15812727.272727273,
+        "new_live": 7020000.0,
+        "change_pct": -55.61
+      },
+      {
+        "variant_id": 9,
+        "product": "Apple iPhone 15 Pro iPhone 15 Pro 512GB",
+        "old_avg": 15812727.272727273,
+        "new_live": 6285000.0,
+        "change_pct": -60.25
+      },
+      {
+        "variant_id": 8,
+        "product": "Apple iPhone 15 Pro iPhone 15 Pro 256GB",
+        "old_avg": 15422000.0,
+        "new_live": 10237500.0,
+        "change_pct": -33.62
+      },
+      {
+        "variant_id": 9,
+        "product": "Apple iPhone 15 Pro iPhone 15 Pro 512GB",
+        "old_avg": 15812727.272727273,
+        "new_live": 10212500.0,
+        "change_pct": -35.42
+      },
+      {
+        "variant_id": 17,
+        "product": "Apple iPhone 13 iPhone 13 256GB",
+        "old_avg": 5693333.333333333,
+        "new_live": 4250000.0,
+        "change_pct": -25.35
+      },
+      {
+        "variant_id": 9,
+        "product": "Apple iPhone 15 Pro iPhone 15 Pro 512GB",
+        "old_avg": 15812727.272727273,
+        "new_live": 3530000.0,
+        "change_pct": -77.68
+      },
+      {
+        "variant_id": 9,
+        "product": "Apple iPhone 15 Pro iPhone 15 Pro 512GB",
+        "old_avg": 15812727.272727273,
+        "new_live": 3530000.0,
+        "change_pct": -77.68
+      },
+      {
+        "variant_id": 9,
+        "product": "Apple iPhone 15 Pro iPhone 15 Pro 512GB",
+        "old_avg": 15812727.272727273,
+        "new_live": 4217500.0,
+        "change_pct": -73.33
+      },
+      {
+        "variant_id": 9,
+        "product": "Apple iPhone 15 Pro iPhone 15 Pro 512GB",
+        "old_avg": 15812727.272727273,
+        "new_live": 4217500.0,
+        "change_pct": -73.33
+      },
+      {
+        "variant_id": 9,
+        "product": "Apple iPhone 15 Pro iPhone 15 Pro 512GB",
+        "old_avg": 15812727.272727273,
+        "new_live": 3530000.0,
+        "change_pct": -77.68
+      },
+      {
+        "variant_id": 8,
+        "product": "Apple iPhone 15 Pro iPhone 15 Pro 256GB",
+        "old_avg": 15422000.0,
+        "new_live": 4217500.0,
+        "change_pct": -72.65
+      },
+      {
+        "variant_id": 8,
+        "product": "Apple iPhone 15 Pro iPhone 15 Pro 256GB",
+        "old_avg": 15422000.0,
+        "new_live": 3530000.0,
+        "change_pct": -77.11
+      },
+      {
+        "variant_id": 8,
+        "product": "Apple iPhone 15 Pro iPhone 15 Pro 256GB",
+        "old_avg": 15422000.0,
+        "new_live": 3530000.0,
+        "change_pct": -77.11
+      },
+      {
+        "variant_id": 8,
+        "product": "Apple iPhone 15 Pro iPhone 15 Pro 256GB",
+        "old_avg": 15422000.0,
+        "new_live": 4217500.0,
+        "change_pct": -72.65
+      }
+    ],
+    "significant_hikes": [
+      {
+        "variant_id": 96,
+        "product": "Apple iPhone 7 iPhone 7 32GB",
+        "old_avg": 50000.0,
+        "new_live": 467500.0,
+        "change_pct": 835.0
+      },
+      {
+        "variant_id": 165,
+        "product": "Apple iPhone 11 Pro iPhone 11 Pro 256GB",
+        "old_avg": 5242500.0,
+        "new_live": 5995000.0,
+        "change_pct": 14.35
+      },
+      {
+        "variant_id": 19,
+        "product": "Apple iPhone 11 iPhone 11 128GB",
+        "old_avg": 4824444.444444444,
+        "new_live": 5435000.0,
+        "change_pct": 12.66
+      },
+      {
+        "variant_id": 96,
+        "product": "Apple iPhone 7 iPhone 7 32GB",
+        "old_avg": 50000.0,
+        "new_live": 340000.0,
+        "change_pct": 580.0
+      },
+      {
+        "variant_id": 41,
+        "product": "Apple iPhone 16 Pro iPhone 16 Pro 256GB",
+        "old_avg": 1744444.4444444445,
+        "new_live": 2635000.0,
+        "change_pct": 51.05
+      },
+      {
+        "variant_id": 42,
+        "product": "Apple iPhone 16 Pro iPhone 16 Pro 512GB",
+        "old_avg": 1878888.888888889,
+        "new_live": 2407500.0,
+        "change_pct": 28.13
+      },
+      {
+        "variant_id": 3,
+        "product": "Apple iPhone 16 Pro Max iPhone 16 Pro Max 1TB",
+        "old_avg": 212222.22222222222,
+        "new_live": 372500.0,
+        "change_pct": 75.52
+      },
+      {
+        "variant_id": 42,
+        "product": "Apple iPhone 16 Pro iPhone 16 Pro 512GB",
+        "old_avg": 1878888.888888889,
+        "new_live": 3530000.0,
+        "change_pct": 87.88
+      },
+      {
+        "variant_id": 41,
+        "product": "Apple iPhone 16 Pro iPhone 16 Pro 256GB",
+        "old_avg": 1744444.4444444445,
+        "new_live": 4217500.0,
+        "change_pct": 141.77
+      },
+      {
+        "variant_id": 228,
+        "product": "Apple iPhone 12 Pro iPhone 12 Pro 256GB",
+        "old_avg": 3560000.0,
+        "new_live": 4217500.0,
+        "change_pct": 18.47
+      },
+      {
+        "variant_id": 42,
+        "product": "Apple iPhone 16 Pro iPhone 16 Pro 512GB",
+        "old_avg": 1878888.888888889,
+        "new_live": 4217500.0,
+        "change_pct": 124.47
+      },
+      {
+        "variant_id": 41,
+        "product": "Apple iPhone 16 Pro iPhone 16 Pro 256GB",
+        "old_avg": 1744444.4444444445,
+        "new_live": 3530000.0,
+        "change_pct": 102.36
+      },
+      {
+        "variant_id": 96,
+        "product": "Apple iPhone 7 iPhone 7 32GB",
+        "old_avg": 50000.0,
+        "new_live": 450000.0,
+        "change_pct": 800.0
+      },
+      {
+        "variant_id": 96,
+        "product": "Apple iPhone 7 iPhone 7 32GB",
+        "old_avg": 50000.0,
+        "new_live": 497500.0,
+        "change_pct": 895.0
+      },
+      {
+        "variant_id": 97,
+        "product": "Apple iPhone 7 iPhone 7 128GB",
+        "old_avg": 652222.2222222222,
+        "new_live": 1130000.0,
+        "change_pct": 73.25
+      }
+    ]
+  }
+]

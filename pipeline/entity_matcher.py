@@ -76,13 +76,13 @@ class SmartphoneEntityMatcher:
             brand_kw = item["brand_name"].lower()
             model_kw = item["model_name"].lower()
             
-            # Cek relevansi awal
-            has_relevant_kw = (
-                model_kw in clean_title or
-                brand_kw in clean_title or
-                any(alias in clean_title for alias in item["aliases_list"])
-            )
-            if not has_relevant_kw:
+            # Cek relevansi awal: harus mengandung brand/alias DAN token model pembeda
+            brand_in_title = brand_kw in clean_title or any(alias in clean_title for alias in item["aliases_list"])
+            if not brand_in_title and model_kw not in clean_title:
+                continue
+
+            model_tokens = [w for w in model_kw.replace("(", "").replace(")", "").split() if w not in {"samsung", "galaxy", "apple", "iphone", "xiaomi", "redmi", "poco", "oppo", "vivo", "realme", "infinix", "asus", "rog", "huawei", "sony", "xperia", "tecno", "nokia", "blackberry", "nothing", "phone"} and len(w) > 1]
+            if model_tokens and not any(tok in clean_title for tok in model_tokens):
                 continue
 
             # 3. Hitung score fuzzy matching

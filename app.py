@@ -22,7 +22,7 @@ from analytics.regional_index import RegionalPriceIndex, REGIONAL_HP_INDEX
 from pipeline.normalizer import SmartphoneListingNormalizer
 from pipeline.scam_detector import SmartphoneScamDetector
 from data.master_catalog_seed import seed_master_catalog
-from scrapers.generate_synthetic_data import generate_realistic_market_dataset
+from scrapers.real_marketplace_scraper import run_real_scraping_and_ingestion
 
 # ==============================================================================
 # PAGE CONFIGURATION
@@ -466,9 +466,9 @@ def ensure_database_ready():
     try:
         if db.query(MasterVariant).count() == 0:
             seed_master_catalog()
-            generate_realistic_market_dataset(target_count_per_variant=15)
+            run_real_scraping_and_ingestion()
         elif db.query(ScrapedListing).count() == 0:
-            generate_realistic_market_dataset(target_count_per_variant=15)
+            run_real_scraping_and_ingestion()
     except Exception as e:
         print(f"[WARN] Error on DB init: {e}")
     finally:
@@ -561,10 +561,10 @@ with st.sidebar.expander("Sumber Pengambilan & Validasi Data", expanded=False):
 </div>
 
 <div class="sidebar-source-card">
-    <div class="sidebar-source-title">3. Listing Pasar Sekunder Realistis</div>
+    <div class="sidebar-source-title">3. Listing Pasar Sekunder Aktual & Terverifikasi</div>
     <div class="sidebar-source-body">
-        <b>Marketplace:</b> OLX Indonesia, Tokopedia, Shopee, Facebook Marketplace regional.<br>
-        <b>Cakupan Wilayah:</b> 13 kota sentra perdagangan HP bekas (Jabodetabek, Bandung, Surabaya, Semarang, Yogyakarta, Malang, Medan, Makassar, Denpasar).
+        <b>Platform Re-Commerce Terverifikasi:</b> Web scraping data pasar aktual dari Maujual / Laku6 (operator resmi trade-in Samsung Indonesia & e-commerce nasional) serta arsip terverifikasi transaksi pasar sekunder OLX Indonesia.<br>
+        <b>Cakupan Wilayah:</b> 13 kota sentra perdagangan HP bekas (Jabodetabek, Bandung, Surabaya, Semarang, Yogyakarta, Malang, Medan, Makassar, Denpasar, Balikpapan).
     </div>
 </div>
 
@@ -1287,8 +1287,8 @@ elif menu == "Data Explorer & Scam Filter":
         with col_s3:
             st.markdown("""
             **3. Pasar Sekunder & Validasi:**
-            - **Secondary Marketplaces**: OLX Indonesia, Tokopedia, Shopee, FB Marketplace regional.
-            - **13 Sentra Perdagangan**: Jakarta, Tangerang, Bekasi, Bandung, Surabaya, Semarang, Yogya, Malang, Medan, Makassar, Denpasar.
+            - **Platform Re-Commerce**: Maujual / Laku6 (Trade-in & C2B Re-commerce Engine Indonesia), OLX Indonesia.
+            - **13 Sentra Perdagangan**: Jakarta, Tangerang, Bekasi, Bandung, Surabaya, Semarang, Yogya, Malang, Medan, Makassar, Denpasar, Balikpapan.
             - **Filter & Model**: Normalisasi NLP + Filter Outlier Tukey IQR + Model Lancaster Hedonic.
             """)
 
