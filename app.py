@@ -1,5 +1,6 @@
 import os
 import sys
+import math
 from pathlib import Path
 import streamlit as st
 import pandas as pd
@@ -17,6 +18,7 @@ from models.database import SessionLocal, init_db
 from models.catalog import MasterBrand, MasterModel, MasterVariant, ScrapedListing, MarketPriceStats
 from analytics.pricing_engine import SmartphonePricingEngine
 from analytics.depreciation_engine import SmartphoneDepreciationEngine
+from analytics.regional_index import RegionalPriceIndex, REGIONAL_HP_INDEX
 from pipeline.normalizer import SmartphoneListingNormalizer
 from pipeline.scam_detector import SmartphoneScamDetector
 from data.master_catalog_seed import seed_master_catalog
@@ -845,6 +847,9 @@ elif menu == "FMV & Hedonic Calculator":
                     
                     c_in1, c_in2 = st.columns(2)
                     with c_in1:
+                        city_list = list(REGIONAL_HP_INDEX.keys())
+                        selected_city = st.selectbox("Kota Transaksi / Domisili:", city_list, index=0)
+
                         w_type = st.selectbox("Asal Distribusi & Garansi:", [
                             "Resmi Indonesia (iBox/SEIN/TAM)",
                             "Ex-Inter Pajak Bea Cukai",
@@ -923,27 +928,36 @@ elif menu == "FMV & Hedonic Calculator":
                     truetone=tt
                 )
 
+                city_mult = RegionalPriceIndex.get_multiplier(selected_city)
+                final_val = hedonic_res['adjusted_price'] * city_mult
+                regional_diff_pct = (city_mult - 1.0) * 100.0
+                regional_diff_nominal = final_val - hedonic_res['adjusted_price']
+
                 st.markdown(f"""
                 <div class="val-hero-container">
                     <div class="val-hero-title">Rekomendasi Valuasi Nilai Pasar Wajar (Final Adjusted)</div>
-                    <div class="val-price-hero">Rp {hedonic_res['adjusted_price']:,.0f}</div>
-                    <div class="val-hero-meta">Base FMV: Rp {base_fmv:,.0f} ({sample_txt}) | Penyesuaian Hedonik: {hedonic_res['net_adjustment_pct']:+.1f}%</div>
+                    <div class="val-price-hero">Rp {final_val:,.0f}</div>
+                    <div class="val-hero-meta">Base FMV: Rp {base_fmv:,.0f} ({sample_txt}) | Hedonik: {hedonic_res['net_adjustment_pct']:+.1f}% | Wilayah ({selected_city}): x{city_mult:.2f} ({regional_diff_pct:+.1f}%)</div>
                 </div>
                 """, unsafe_allow_html=True)
 
-                res_c1, res_c2, res_c3 = st.columns(3)
+                res_c1, res_c2, res_c3, res_c4 = st.columns(4)
                 with res_c1:
                     st.metric("Base Fair Market Value", f"Rp {base_fmv:,.0f}")
                 with res_c2:
                     st.metric("Net Penyesuaian Hedonik", f"{hedonic_res['net_adjustment_pct']:+.1f}%", f"Rp {(hedonic_res['adjusted_price'] - base_fmv):,.0f}")
                 with res_c3:
-                    depr_final = SmartphoneDepreciationEngine.calculate_real_depreciation(msrp, hedonic_res['adjusted_price'])
+                    st.metric(f"Indeks Wilayah ({selected_city})", f"x{city_mult:.2f}", f"{regional_diff_pct:+.1f}% (Rp {regional_diff_nominal:,.0f})")
+                with res_c4:
+                    depr_final = SmartphoneDepreciationEngine.calculate_real_depreciation(msrp, final_val)
                     st.metric("Penyusutan Nilai dari MSRP", f"{depr_final:.1f}%")
 
-                if hedonic_res["adjustment_breakdown"]:
-                    st.markdown("##### Rincian Penyesuaian Atribut:")
+                if hedonic_res["adjustment_breakdown"] or city_mult != 1.0:
+                    st.markdown("##### Rincian Penyesuaian Atribut & Wilayah:")
                     for desc, pct in hedonic_res["adjustment_breakdown"]:
                         st.write(f"- {desc}: **{pct*100:+.1f}%**")
+                    if city_mult != 1.0:
+                        st.write(f"- Indeks Disparitas Wilayah ({selected_city}): **{regional_diff_pct:+.1f}%** (Rp {regional_diff_nominal:+,.0f})")
             else:
                 st.warning("Silakan pilih model dan varian smartphone yang valid.")
     except Exception as e:
@@ -1399,8 +1413,31 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
             if not filtered_models:
                 st.info("Tidak ada model smartphone yang cocok dengan filter yang dipilih.")
             elif view_mode == "Tampilan Galeri Visual Produk":
+                items_per_page = 18
+                total_items = len(filtered_models)
+                total_pages = max(1, math.ceil(total_items / items_per_page))
+
+                col_page_sel, col_page_info = st.columns([1.5, 2.5])
+                with col_page_sel:
+                    selected_page = st.selectbox(
+                        "Pilih Halaman:",
+                        range(1, total_pages + 1),
+                        format_func=lambda p: f"Halaman {p} dari {total_pages}",
+                        key="katalog_page_selector"
+                    )
+                with col_page_info:
+                    start_idx = (selected_page - 1) * items_per_page
+                    end_idx = min(start_idx + items_per_page, total_items)
+                    st.markdown(f"""
+                    <div style="padding-top:28px; font-size:0.85rem; color:#94a3b8; font-family:'JetBrains Mono', monospace;">
+                        Menampilkan unit <b style="color:#f8fafc;">{start_idx + 1} - {end_idx}</b> dari total <b style="color:#38bdf8;">{total_items}</b> model.
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                page_models = filtered_models[start_idx:end_idx]
+
                 grid_cols = st.columns(3)
-                for idx, (m_item, b_item) in enumerate(filtered_models):
+                for idx, (m_item, b_item) in enumerate(page_models):
                     col_target = grid_cols[idx % 3]
                     with col_target:
                         img_path = get_phone_asset_path(m_item.image_url)

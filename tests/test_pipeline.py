@@ -92,5 +92,17 @@ class TestSmartphonePipeline(unittest.TestCase):
         # Apple harus memiliki nilai retensi lebih tinggi dibanding Android midrange
         self.assertGreater(retention_apple, retention_mid)
 
+        # Perangkat vintage (>8 tahun) harus menyusut ke nilai residu/koleksi (5-15%)
+        retention_vintage_iphone = SmartphoneDepreciationEngine.calculate_theoretical_retention(
+            "Apple", "iPhone 4", release_year=2010, current_year=2026
+        )
+        retention_vintage_samsung = SmartphoneDepreciationEngine.calculate_theoretical_retention(
+            "Samsung", "Galaxy S2", release_year=2011, current_year=2026
+        )
+        self.assertLessEqual(retention_vintage_iphone, 0.15)
+        self.assertGreaterEqual(retention_vintage_iphone, 0.05)
+        self.assertLessEqual(retention_vintage_samsung, 0.10)
+        self.assertGreaterEqual(retention_vintage_samsung, 0.04)
+
 if __name__ == "__main__":
     unittest.main()

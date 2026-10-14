@@ -39,6 +39,7 @@ class SmartphoneDepreciationEngine:
     ) -> float:
         """
         Menghitung persentase retensi nilai teoritis (0.0 - 1.0).
+        Termasuk kurva peluruhan vintage (>8 tahun) menuju residual scrap/collector floor (5-10%).
         """
         tier = cls.get_tier_for_model(brand_name, model_name)
         params = cls.TIER_RATES.get(tier, cls.TIER_RATES["Android_Midrange"])
@@ -49,9 +50,19 @@ class SmartphoneDepreciationEngine:
         else:
             total_depreciation = params["year_1"] + ((age - 1) * params["annual_decay"])
 
-        total_depreciation = min(params["max_cap"], total_depreciation)
+        # Cap siklus hidup standar (hingga 8 tahun)
+        base_cap = params["max_cap"]
+
+        if age > 8:
+            vintage_years = age - 8
+            # Fase vintage/koleksi: nilai menyusut menuju floor residual 5-8% (max depr 0.92-0.95)
+            vintage_cap = 0.92 if tier == "Apple" else 0.95
+            total_depreciation = min(vintage_cap, base_cap + (vintage_years * 0.025))
+        else:
+            total_depreciation = min(base_cap, total_depreciation)
+
         retention_rate = 1.0 - total_depreciation
-        return retention_rate
+        return round(retention_rate, 4)
 
     @classmethod
     def calculate_real_depreciation(

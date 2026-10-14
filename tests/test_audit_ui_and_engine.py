@@ -61,5 +61,12 @@ class TestAuditUIAndEngine(unittest.TestCase):
         deals = self.engine.find_hot_deals(discount_threshold_pct=10.0)
         self.assertIsInstance(deals, list)
 
+        # 5. Regional Price Index
+        from analytics.regional_index import RegionalPriceIndex, REGIONAL_HP_INDEX
+        self.assertEqual(RegionalPriceIndex.get_multiplier("Jakarta Selatan"), 1.00)
+        self.assertGreater(RegionalPriceIndex.get_multiplier("Medan"), 1.00)
+        self.assertLess(RegionalPriceIndex.get_multiplier("Bandung"), 1.00)
+        self.assertEqual(RegionalPriceIndex.get_multiplier("Kota Tidak Terdaftar"), 1.00)
+
 if __name__ == "__main__":
     unittest.main()
