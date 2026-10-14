@@ -1,5 +1,6 @@
 import unittest
-from models.database import SessionLocal, init_db
+from models.database import SessionLocal, init_db, get_db
+from models.catalog import MasterBrand, MasterModel, MasterVariant, ScrapedListing
 from pipeline.normalizer import SmartphoneListingNormalizer
 from pipeline.scam_detector import SmartphoneScamDetector
 from pipeline.entity_matcher import SmartphoneEntityMatcher
@@ -103,6 +104,110 @@ class TestSmartphonePipeline(unittest.TestCase):
         self.assertGreaterEqual(retention_vintage_iphone, 0.05)
         self.assertLessEqual(retention_vintage_samsung, 0.10)
         self.assertGreaterEqual(retention_vintage_samsung, 0.04)
+
+    def test_nlp_normalizer_null_safety(self):
+        # Must not raise exceptions on None or empty values
+        norm_none = SmartphoneListingNormalizer.normalize_listing({})
+        self.assertIsNone(norm_none["price"])
+        self.assertEqual(norm_none["warranty_type"], "Resmi Indonesia (iBox/SEIN/TAM)")
+
+        # Direct function calls with None
+        self.assertIsNone(SmartphoneListingNormalizer.extract_storage(None))
+        self.assertIsNone(SmartphoneListingNormalizer.extract_ram(None))
+        self.assertIsNone(SmartphoneListingNormalizer.extract_battery_health(None))
+        w_type, w_stat = SmartphoneListingNormalizer.extract_warranty(None)
+        self.assertEqual(w_type, "Resmi Indonesia (iBox/SEIN/TAM)")
+        self.assertEqual(SmartphoneListingNormalizer.extract_imei_status(None, None), "IMEI Bea Cukai All Operator")
+        self.assertEqual(SmartphoneListingNormalizer.extract_completeness(None), "Fullset Original")
+        self.assertEqual(SmartphoneListingNormalizer.extract_physical_grade(None), "Grade A (Mulus 95%)")
+        self.assertEqual(SmartphoneListingNormalizer.extract_screen_condition(None), "Normal Original")
+        bio, tt = SmartphoneListingNormalizer.extract_biometrics_and_truetone(None)
+        self.assertEqual(bio, "Normal Aktif")
+        self.assertEqual(tt, "Aktif")
+
+    def test_hedonic_null_safety(self):
+        # Must gracefully handle None inputs without raising TypeError
+        res = self.pricing_engine.calculate_hedonic_adjusted_price(
+            base_fmv=None,
+            warranty_type=None,
+            warranty_status=None,
+            imei_status=None,
+            battery_health="invalid",
+            completeness=None,
+            physical_grade=None,
+            screen_condition=None,
+            biometrics=None,
+            truetone=None
+        )
+        self.assertEqual(res["base_fmv"], 0.0)
+        self.assertEqual(res["adjusted_price"], 0.0)
+
+        # Non-zero base_fmv with None strings
+        res2 = self.pricing_engine.calculate_hedonic_adjusted_price(
+            base_fmv=5_000_000,
+            imei_status=None,
+            warranty_type=None,
+            physical_grade=None
+        )
+        self.assertEqual(res2["base_fmv"], 5_000_000.0)
+        self.assertGreater(res2["adjusted_price"], 0.0)
+
+    def test_case_insensitive_city_pricing(self):
+        # Test case insensitivity of city filter
+        first_variant = self.db.query(MasterVariant).first()
+        self.assertIsNotNone(first_variant)
+
+        stats_lower = self.pricing_engine.calculate_variant_pricing_stats(first_variant.id, city="jakarta selatan")
+        stats_upper = self.pricing_engine.calculate_variant_pricing_stats(first_variant.id, city="JAKARTA SELATAN")
+        stats_mixed = self.pricing_engine.calculate_variant_pricing_stats(first_variant.id, city=" Jakarta Selatan ")
+
+        if stats_lower and stats_upper:
+            self.assertEqual(stats_lower["sample_count"], stats_upper["sample_count"])
+            self.assertEqual(stats_lower["price_median"], stats_upper["price_median"])
+        if stats_mixed and stats_lower:
+            self.assertEqual(stats_mixed["sample_count"], stats_lower["sample_count"])
+
+    def test_adaptive_scam_detector_vintage_vs_modern(self):
+        # Vintage phone at Rp 250k with expected MSRP Rp 1.5jt should NOT be marked UNREALISTIC_LOW
+        is_scam_vintage, cat_vintage, reason_vintage = SmartphoneScamDetector.evaluate_listing(
+            price=250_000,
+            title="Nokia Lumia 520 Bekas Normal",
+            description="Kondisi mulus tombol oke",
+            expected_msrp=1_500_000
+        )
+        self.assertFalse(is_scam_vintage, f"Vintage phone should not be scam: {reason_vintage}")
+        self.assertEqual(cat_vintage, "VALID_CASH")
+
+        # Modern flagship phone at Rp 250k with expected MSRP Rp 25jt MUST be marked scam
+        is_scam_modern, cat_modern, _ = SmartphoneScamDetector.evaluate_listing(
+            price=250_000,
+            title="iPhone 15 Pro Max 256GB Mulus",
+            description="Dijual cepat butuh uang",
+            expected_msrp=24_999_000
+        )
+        self.assertTrue(is_scam_modern)
+        self.assertIn(cat_modern, ["SUSPICIOUS_ANOMALY", "UNREALISTIC_LOW", "DP_CLICKBAIT"])
+
+    def test_database_context_manager(self):
+        from models.database import get_db
+        # Test normal context exit
+        with get_db() as session:
+            count = session.query(MasterBrand).count()
+            self.assertGreater(count, 0)
+
+        # Test rollback on exception inside context
+        try:
+            with get_db() as session:
+                dummy_brand = MasterBrand(name="TestBrandRollbackTemp", tier_category="Test")
+                session.add(dummy_brand)
+                raise RuntimeError("Simulated transaction error")
+        except RuntimeError:
+            pass
+
+        # Verify dummy brand was rolled back
+        with get_db() as session:
+            found = session.query(MasterBrand).filter(MasterBrand.name == "TestBrandRollbackTemp").first()
+            self.assertIsNone(found, "Rolled back brand should not exist in database")
 
 if __name__ == "__main__":
     unittest.main()

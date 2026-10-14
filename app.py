@@ -7,6 +7,8 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import html
+from contextlib import contextmanager
 from sqlalchemy.orm import Session
 
 # Setup Path
@@ -478,8 +480,16 @@ def ensure_database_ready():
 # Ensure DB is warmed up
 ensure_database_ready()
 
+@contextmanager
 def get_db():
-    return SessionLocal()
+    db = SessionLocal()
+    try:
+        yield db
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
 # ==============================================================================
 # SIDEBAR NAVIGATION
@@ -527,9 +537,9 @@ with st.sidebar.expander("Inspeksi Visual Unit (Quick Preview)", expanded=False)
                             st.image(sb_img, use_container_width=True)
                         st.markdown(f"""
                         <div style="font-size:0.75rem; color:#94a3b8; line-height:1.45; margin-top:4px;">
-                            <b style="color:#f8fafc;">{sb_brand} {sb_m_obj.name}</b> ({sb_m_obj.release_year})<br>
-                            Chipset: <span style="color:#60a5fa;">{sb_m_obj.chipset or '-'}</span><br>
-                            Kamera: <span style="color:#34d399;">{sb_m_obj.main_camera_mp or '-'}</span>
+                            <b style="color:#f8fafc;">{html.escape(sb_brand)} {html.escape(sb_m_obj.name)}</b> ({sb_m_obj.release_year})<br>
+                            Chipset: <span style="color:#60a5fa;">{html.escape(sb_m_obj.chipset or '-')}</span><br>
+                            Kamera: <span style="color:#34d399;">{html.escape(sb_m_obj.main_camera_mp or '-')}</span>
                         </div>
                         """, unsafe_allow_html=True)
     except Exception as e:
@@ -662,9 +672,9 @@ if menu == "Market Overview & Dashboard":
                         msrp_val = float(sh_var.official_msrp_new) if sh_var else 0
                         st.markdown(f"""
                         <div class="phone-showcase-card">
-                            <div class="phone-showcase-title">{sh_brand} {sh_m.name}</div>
+                            <div class="phone-showcase-title">{html.escape(sh_brand)} {html.escape(sh_m.name)}</div>
                             <div class="phone-showcase-price">MSRP Rp {msrp_val:,.0f}</div>
-                            <div class="phone-showcase-meta">{sh_m.chipset or '-'} | {sh_m.release_year}</div>
+                            <div class="phone-showcase-meta">{html.escape(sh_m.chipset or '-')} | {sh_m.release_year}</div>
                         </div>
                         """, unsafe_allow_html=True)
 
@@ -1133,21 +1143,21 @@ elif menu == "Arbitrage & Hot Deals Radar":
                                     st.image(d_img, use_container_width=True)
                             st.markdown(f"""
                             <div class="phone-showcase-card">
-                                <div class="phone-showcase-title">{deal_item['brand']} {deal_item['model']}</div>
+                                <div class="phone-showcase-title">{html.escape(str(deal_item['brand']))} {html.escape(str(deal_item['model']))}</div>
                                 <div class="phone-showcase-price">Rp {deal_item['price']:,.0f} <span style="color:#ef4444; font-size:0.75rem;">(-{deal_item['discount_pct']:.1f}%)</span></div>
                                 <div class="phone-showcase-meta">FMV: Rp {deal_item['fmv_price']:,.0f} | Margin: Rp {deal_item['potential_profit']:,.0f}</div>
-                                <div style="margin-top:6px;"><span class="status-pill" style="font-size:0.65rem;">{deal_item['deal_tier']}</span></div>
+                                <div style="margin-top:6px;"><span class="status-pill" style="font-size:0.65rem;">{html.escape(str(deal_item['deal_tier']))}</span></div>
                             </div>
                             """, unsafe_allow_html=True)
 
                 df_deals = pd.DataFrame(deals)
                 
                 display_df = df_deals[[
-                    "deal_tier", "brand", "model", "variant", "price", "fmv_price", "discount_pct", "potential_profit", "city", "platform", "warranty_type", "imei_status"
+                    "deal_tier", "brand", "model", "variant", "price", "fmv_price", "discount_pct", "potential_profit", "city", "platform", "warranty_type", "imei_status", "url"
                 ]].copy()
                 
                 display_df.columns = [
-                    "Tier Peluang", "Brand", "Model", "Varian", "Harga Listing", "FMV Pasar", "Diskon (%)", "Potensi Margin (IDR)", "Kota", "Platform", "Garansi", "IMEI / Sinyal"
+                    "Tier Peluang", "Brand", "Model", "Varian", "Harga Listing", "FMV Pasar", "Diskon (%)", "Potensi Margin (IDR)", "Kota", "Platform", "Garansi", "IMEI / Sinyal", "Tautan Listing"
                 ]
                 
                 display_df["Harga Listing"] = display_df["Harga Listing"].apply(lambda x: f"Rp {x:,.0f}")
@@ -1155,7 +1165,17 @@ elif menu == "Arbitrage & Hot Deals Radar":
                 display_df["Potensi Margin (IDR)"] = display_df["Potensi Margin (IDR)"].apply(lambda x: f"Rp {x:,.0f}")
                 display_df["Diskon (%)"] = display_df["Diskon (%)"].apply(lambda x: f"{x:.1f}%")
 
-                st.dataframe(display_df, use_container_width=True, hide_index=True)
+                st.dataframe(
+                    display_df,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "Tautan Listing": st.column_config.LinkColumn(
+                            "Tautan Listing",
+                            display_text="Buka Listing"
+                        )
+                    }
+                )
             else:
                 st.info(f"Tidak ada listing yang memenuhi kriteria diskon >= {disc_thresh}%.")
     except Exception as e:
@@ -1453,16 +1473,16 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
                         st.markdown(f"""
                         <div class="phone-showcase-card" style="text-align:left; margin-bottom:18px;">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <span class="status-pill" style="font-size:0.65rem;">{b_item.name}</span>
+                                <span class="status-pill" style="font-size:0.65rem;">{html.escape(str(b_item.name))}</span>
                                 <span style="font-family:'JetBrains Mono', monospace; font-size:0.80rem; color:#94a3b8; font-weight:700;">{m_item.release_year}</span>
                             </div>
-                            <div class="phone-showcase-title" style="font-size:1.05rem; margin-top:6px;">{b_item.name} {m_item.name}</div>
+                            <div class="phone-showcase-title" style="font-size:1.05rem; margin-top:6px;">{html.escape(str(b_item.name))} {html.escape(str(m_item.name))}</div>
                             <div style="font-size:0.78rem; color:#cbd5e1; margin-top:6px; line-height:1.5;">
-                                <b>SoC:</b> <span style="color:#60a5fa;">{m_item.chipset or '-'}</span><br>
-                                <b>Display:</b> {m_item.display_type or '-'} ({m_item.refresh_rate_hz}Hz)<br>
-                                <b>Kamera:</b> {m_item.main_camera_mp or '-'} (OIS: {'Ya' if m_item.has_ois else 'Tidak'})<br>
+                                <b>SoC:</b> <span style="color:#60a5fa;">{html.escape(str(m_item.chipset or '-'))}</span><br>
+                                <b>Display:</b> {html.escape(str(m_item.display_type or '-'))} ({m_item.refresh_rate_hz}Hz)<br>
+                                <b>Kamera:</b> {html.escape(str(m_item.main_camera_mp or '-'))} (OIS: {'Ya' if m_item.has_ois else 'Tidak'})<br>
                                 <b>Baterai:</b> {m_item.battery_capacity_mah or '-'} mAh ({m_item.fast_charging_watt}W)<br>
-                                <b>Konektivitas:</b> {m_item.network_gen} | NFC: {'Ya' if m_item.has_nfc else 'Tidak'} | {m_item.ip_rating}
+                                <b>Konektivitas:</b> {html.escape(str(m_item.network_gen))} | NFC: {'Ya' if m_item.has_nfc else 'Tidak'} | {html.escape(str(m_item.ip_rating))}
                             </div>
                             <div style="margin-top:10px; padding-top:8px; border-top:1px solid #334155; font-size:0.75rem; color:#94a3b8;">
                                 <b style="color:#f8fafc;">Varian & MSRP Peluncuran Resmi:</b><br>

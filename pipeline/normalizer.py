@@ -42,7 +42,7 @@ class SmartphoneListingNormalizer:
     @staticmethod
     def extract_storage(text: str) -> Optional[int]:
         """Ekstraksi kapasitas ROM / Internal Storage dalam GB."""
-        lower = text.lower()
+        lower = str(text or "").lower()
         if "1tb" in lower or "1 tb" in lower or "1024gb" in lower:
             return 1024
         
@@ -67,7 +67,7 @@ class SmartphoneListingNormalizer:
     @staticmethod
     def extract_ram(text: str) -> Optional[int]:
         """Ekstraksi kapasitas RAM dalam GB."""
-        lower = text.lower()
+        lower = str(text or "").lower()
         ram_rom_match = re.search(r"\b(\d{1,2})\s*[/,]\s*\d{2,4}\s*(?:gb)?\b", lower)
         if ram_rom_match:
             try:
@@ -91,7 +91,7 @@ class SmartphoneListingNormalizer:
         Ekstraksi asal garansi dan status aktif/habis.
         Returns: (warranty_type, warranty_status)
         """
-        lower = text.lower()
+        lower = str(text or "").lower()
         w_type = "Resmi Indonesia (iBox/SEIN/TAM)"
         w_status = "Habis (Ex-Resmi)"
 
@@ -113,9 +113,10 @@ class SmartphoneListingNormalizer:
         return w_type, w_status
 
     @staticmethod
-    def extract_imei_status(text: str, warranty_type: str) -> str:
+    def extract_imei_status(text: str, warranty_type: str = "") -> str:
         """Ekstraksi status sinyal & registrasi IMEI di Indonesia."""
-        lower = text.lower()
+        lower = str(text or "").lower()
+        w_type_str = str(warranty_type or "")
         if any(re.search(pat, lower) for pat in IMEI_SIGNAL_PATTERNS["wifi_only"]):
             return "Wifi Only / Sinyal Blokir"
         if any(re.search(pat, lower) for pat in IMEI_SIGNAL_PATTERNS["smartfren_temp"]):
@@ -126,16 +127,16 @@ class SmartphoneListingNormalizer:
             return "IMEI Bea Cukai All Operator"
 
         # Default fallback berdasarkan garansi
-        if "Resmi Indonesia" in warranty_type:
+        if "Resmi Indonesia" in w_type_str:
             return "IMEI Kemenperin Permanen"
-        elif "Ex-Inter Non-Pajak" in warranty_type:
+        elif "Ex-Inter Non-Pajak" in w_type_str:
             return "IMEI 3 Bulan / Smartfren Only"
         return "IMEI Bea Cukai All Operator"
 
     @staticmethod
     def extract_battery_health(text: str) -> Optional[int]:
         """Ekstraksi Battery Health (BH %) untuk iPhone."""
-        lower = text.lower()
+        lower = str(text or "").lower()
         for pat in BATTERY_PATTERNS:
             match = re.search(pat, lower)
             if match:
@@ -150,7 +151,7 @@ class SmartphoneListingNormalizer:
     @staticmethod
     def extract_completeness(text: str) -> str:
         """Ekstraksi kelengkapan unit."""
-        lower = text.lower()
+        lower = str(text or "").lower()
         if any(re.search(pat, lower) for pat in COMPLETENESS_PATTERNS["batangan"]):
             return "Batangan / Unit Only"
         if any(re.search(pat, lower) for pat in COMPLETENESS_PATTERNS["fullset_oem"]):
@@ -162,7 +163,7 @@ class SmartphoneListingNormalizer:
     @staticmethod
     def extract_physical_grade(text: str) -> str:
         """Ekstraksi kondisi fisik unit."""
-        lower = text.lower()
+        lower = str(text or "").lower()
         if any(re.search(pat, lower) for pat in PHYSICAL_GRADE_PATTERNS["grade_c"]):
             return "Grade C (Dent/Baret)"
         if any(re.search(pat, lower) for pat in PHYSICAL_GRADE_PATTERNS["grade_b"]):
@@ -176,7 +177,7 @@ class SmartphoneListingNormalizer:
     @staticmethod
     def extract_screen_condition(text: str) -> str:
         """Ekstraksi kondisi panel layar."""
-        lower = text.lower()
+        lower = str(text or "").lower()
         if any(re.search(pat, lower) for pat in SCREEN_PATTERNS["green_line"]):
             return "Green Line / Garis"
         if any(re.search(pat, lower) for pat in SCREEN_PATTERNS["shadow_tebal"]):
@@ -192,7 +193,7 @@ class SmartphoneListingNormalizer:
     @staticmethod
     def extract_biometrics_and_truetone(text: str) -> Tuple[str, str]:
         """Ekstraksi Face ID/Touch ID dan True Tone."""
-        lower = text.lower()
+        lower = str(text or "").lower()
         bio = "Normal Aktif"
         if any(re.search(pat, lower) for pat in BIOMETRICS_PATTERNS["broken"]):
             bio = "Face ID / Touch ID Rusak/Off"
@@ -206,9 +207,11 @@ class SmartphoneListingNormalizer:
     @classmethod
     def normalize_listing(cls, raw_listing: Dict[str, Any]) -> Dict[str, Any]:
         """Menjalankan pipeline normalisasi menyeluruh untuk 1 raw listing HP."""
-        title = raw_listing.get("title", "")
-        desc = raw_listing.get("description", "")
-        combined = f"{title} {desc}"
+        if not isinstance(raw_listing, dict):
+            raw_listing = {}
+        title = str(raw_listing.get("title") or "")
+        desc = str(raw_listing.get("description") or "")
+        combined = f"{title} {desc}".strip()
 
         clean_price = cls.parse_price(raw_listing.get("price"))
         storage = raw_listing.get("storage_gb") or cls.extract_storage(combined)

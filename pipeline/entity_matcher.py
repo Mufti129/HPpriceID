@@ -56,7 +56,8 @@ class SmartphoneEntityMatcher:
         Mencocokkan judul listing ke Master Variant ID.
         Returns: (variant_id, confidence_score, matched_name, official_msrp)
         """
-        clean_title = title.lower()
+        title_str = str(title or "")
+        clean_title = title_str.lower()
         # Normalisasi singkatan umum smartphone di Indonesia
         clean_title = clean_title.replace("ip ", "iphone ").replace("ipone", "iphone").replace("ip.", "iphone ")
         clean_title = clean_title.replace("pmax", "pro max").replace("pm ", "pro max ")

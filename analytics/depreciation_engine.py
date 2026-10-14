@@ -18,8 +18,8 @@ class SmartphoneDepreciationEngine:
 
     @classmethod
     def get_tier_for_model(cls, brand_name: str, model_name: str) -> str:
-        brand_low = brand_name.lower()
-        model_low = model_name.lower()
+        brand_low = str(brand_name or "").lower()
+        model_low = str(model_name or "").lower()
 
         if "apple" in brand_low or "iphone" in model_low:
             return "Apple"
@@ -44,7 +44,17 @@ class SmartphoneDepreciationEngine:
         tier = cls.get_tier_for_model(brand_name, model_name)
         params = cls.TIER_RATES.get(tier, cls.TIER_RATES["Android_Midrange"])
 
-        age = max(0, current_year - release_year)
+        try:
+            rel_year = int(release_year)
+        except (ValueError, TypeError):
+            rel_year = 2024
+
+        try:
+            curr_year = int(current_year)
+        except (ValueError, TypeError):
+            curr_year = 2026
+
+        age = max(0, curr_year - rel_year)
         if age == 0:
             total_depreciation = params["year_1"] * 0.5  # Model tahun berjalan
         else:
@@ -73,7 +83,13 @@ class SmartphoneDepreciationEngine:
         """
         Menghitung persentase depresiasi riil dari MSRP Baru ke Harga Pasar Saat Ini.
         """
-        if msrp_new <= 0:
+        try:
+            msrp_val = float(msrp_new or 0.0)
+            curr_val = float(current_market_price or 0.0)
+        except (ValueError, TypeError):
             return 0.0
-        depr = ((msrp_new - current_market_price) / msrp_new) * 100.0
+
+        if msrp_val <= 0:
+            return 0.0
+        depr = ((msrp_val - curr_val) / msrp_val) * 100.0
         return max(0.0, round(depr, 2))

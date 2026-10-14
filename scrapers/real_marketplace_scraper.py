@@ -295,13 +295,19 @@ def run_real_scraping_and_ingestion():
         )
         new_listings.append(scam_item)
 
-    db.bulk_save_objects(new_listings)
-    db.commit()
+    try:
+        db.bulk_save_objects(new_listings)
+        db.commit()
 
-    total_inserted = db.query(ScrapedListing).count()
-    print(f"\nSUKSES: Total {total_inserted} listing pasar riil berhasil di-ingest ke database!")
-    db.close()
-    return total_inserted
+        total_inserted = db.query(ScrapedListing).count()
+        print(f"\nSUKSES: Total {total_inserted} listing pasar riil berhasil di-ingest ke database!")
+        return total_inserted
+    except Exception as e:
+        db.rollback()
+        print(f"\nERROR saat ingest data pasar riil: {e}")
+        raise e
+    finally:
+        db.close()
 
 if __name__ == "__main__":
     run_real_scraping_and_ingestion()

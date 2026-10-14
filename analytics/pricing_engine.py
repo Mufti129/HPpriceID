@@ -2,6 +2,7 @@ import math
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from models.catalog import (
     ScrapedListing, MasterVariant, MasterModel, MasterBrand, MarketPriceStats
@@ -104,11 +105,12 @@ class SmartphonePricingEngine:
             stats_map = self.get_all_variant_stats_map()
             return stats_map.get(variant_id)
 
+        city_clean = city.strip()
         query = self.db.query(ScrapedListing.price).filter(
             ScrapedListing.matched_variant_id == variant_id,
             ScrapedListing.is_dp_price == False,
             ScrapedListing.price > 0,
-            ScrapedListing.city == city
+            func.lower(func.trim(ScrapedListing.city)) == func.lower(city_clean)
         )
 
         prices = [float(p[0]) for p in query.all() if p[0] is not None]
@@ -127,7 +129,7 @@ class SmartphonePricingEngine:
 
         return {
             "variant_id": variant_id,
-            "city": city,
+            "city": city_clean,
             "sample_count": len(filtered_prices),
             "price_min": float(min(filtered_prices)),
             "price_p25": float(percentile(filtered_prices, 25)),
@@ -140,19 +142,48 @@ class SmartphonePricingEngine:
     def calculate_hedonic_adjusted_price(
         self,
         base_fmv: float,
-        warranty_type: str = "Resmi Indonesia (iBox/SEIN/TAM)",
-        warranty_status: str = "Habis (Ex-Resmi)",
-        imei_status: str = "IMEI Kemenperin Permanen",
+        warranty_type: Optional[str] = "Resmi Indonesia (iBox/SEIN/TAM)",
+        warranty_status: Optional[str] = "Habis (Ex-Resmi)",
+        imei_status: Optional[str] = "IMEI Kemenperin Permanen",
         battery_health: Optional[int] = None,
-        completeness: str = "Fullset Original",
-        physical_grade: str = "Grade A (Mulus 95%)",
-        screen_condition: str = "Normal Original",
-        biometrics: str = "Normal Aktif",
-        truetone: str = "Aktif"
+        completeness: Optional[str] = "Fullset Original",
+        physical_grade: Optional[str] = "Grade A (Mulus 95%)",
+        screen_condition: Optional[str] = "Normal Original",
+        biometrics: Optional[str] = "Normal Aktif",
+        truetone: Optional[str] = "Aktif"
     ) -> Dict[str, Any]:
         """
         Menghitung Penyesuaian Harga Hedonik (Hedonic Quality Valuation).
+        Kebal terhadap input None atau non-string.
         """
+        try:
+            base_fmv = float(base_fmv or 0.0)
+        except (ValueError, TypeError):
+            base_fmv = 0.0
+
+        if base_fmv <= 0.0:
+            return {
+                "base_fmv": 0.0,
+                "net_adjustment_pct": 0.0,
+                "adjusted_price": 0.0,
+                "adjustment_breakdown": []
+            }
+
+        warranty_type = str(warranty_type or "")
+        warranty_status = str(warranty_status or "")
+        imei_status = str(imei_status or "")
+        completeness = str(completeness or "")
+        physical_grade = str(physical_grade or "")
+        screen_condition = str(screen_condition or "")
+        biometrics = str(biometrics or "")
+        truetone = str(truetone or "")
+
+        if battery_health is not None:
+            try:
+                battery_health = int(battery_health)
+            except (ValueError, TypeError):
+                battery_health = None
+
         adj_pct = 0.0
         breakdown = []
 

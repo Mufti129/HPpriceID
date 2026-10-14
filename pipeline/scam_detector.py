@@ -31,10 +31,17 @@ class SmartphoneScamDetector:
         Mengevaluasi apakah listing valid, penipuan DP, HDC palsu, atau locked device.
         Returns: (is_scam_or_dp: bool, category: str, reason: str)
         """
+        try:
+            price = float(price) if price is not None else None
+        except (ValueError, TypeError):
+            return True, "INVALID_PRICE", "Format harga tidak valid"
+
         if price is None or price <= 0:
             return True, "INVALID_PRICE", "Harga kosong atau 0"
 
-        text_corpus = f"{title} {description}".lower()
+        title_str = str(title or "")
+        desc_str = str(description or "")
+        text_corpus = f"{title_str} {desc_str}".lower()
 
         # 1. Cek HP Replika / HDC / Clone
         for pat in cls.FAKE_HDC_PATTERNS:
@@ -48,7 +55,7 @@ class SmartphoneScamDetector:
 
         # 3. Cek Kata Kunci DP di Judul dengan Harga Tidak Wajar
         for pat in DP_SCAM_PATTERNS:
-            if re.search(pat, title.lower()):
+            if re.search(pat, title_str.lower()):
                 if price < 5_000_000:
                     return True, "DP_CLICKBAIT", f"Mengandung kata kunci DP/Kredit di judul: '{pat}'"
 
@@ -61,8 +68,21 @@ class SmartphoneScamDetector:
                         return True, "DP_CLICKBAIT", f"Harga anomali ({price:,.0f}) dengan keyword cicilan: '{pat}'"
                 return True, "SUSPICIOUS_ANOMALY", f"Harga sangat tidak wajar ({price:,.0f} vs MSRP {expected_msrp:,.0f})"
 
-        # 5. Batas Minimum Absolut
-        if price < cls.MIN_PLAUSIBLE_CASH_PRICE:
-            return True, "UNREALISTIC_LOW", f"Harga di bawah batas minimum Rp {cls.MIN_PLAUSIBLE_CASH_PRICE:,.0f}"
+        # 5. Batas Minimum Absolut Adaptif
+        # Untuk perangkat modern/flagship, harga tunai di bawah 400rb adalah rongsokan/DP semu.
+        # Namun untuk perangkat vintage (2010-2014) atau ultra-budget entry level, harga wajar pasar bisa Rp 100k - Rp 350k.
+        min_threshold = cls.MIN_PLAUSIBLE_CASH_PRICE
+        if expected_msrp and expected_msrp > 0:
+            if expected_msrp < 2_500_000:
+                min_threshold = 100_000
+            elif expected_msrp < 5_000_000:
+                min_threshold = 200_000
+            else:
+                min_threshold = 400_000
+        else:
+            min_threshold = 150_000
+
+        if price < min_threshold:
+            return True, "UNREALISTIC_LOW", f"Harga (Rp {price:,.0f}) di bawah batas minimum kewajaran Rp {min_threshold:,.0f}"
 
         return False, "VALID_CASH", "Listing Tunai Valid"

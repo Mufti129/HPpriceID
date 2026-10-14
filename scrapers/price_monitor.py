@@ -31,81 +31,82 @@ def run_periodic_price_check(alert_threshold_pct: float = 7.0) -> Dict[str, Any]
     """
     init_db()
     db = SessionLocal()
-    matcher = SmartphoneEntityMatcher(db)
+    try:
+        matcher = SmartphoneEntityMatcher(db)
 
-    print("=" * 70)
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] MEMULAI AUDIT MONITORING HARGA BERKALA")
-    print("=" * 70)
+        print("=" * 70)
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] MEMULAI AUDIT MONITORING HARGA BERKALA")
+        print("=" * 70)
 
-    # 1. Ambil snapshot harga rata-rata saat ini per varian di database
-    variant_prices_db = {}
-    variants = db.query(MasterVariant, MasterModel, MasterBrand).join(
-        MasterModel, MasterVariant.model_id == MasterModel.id
-    ).join(
-        MasterBrand, MasterModel.brand_id == MasterBrand.id
-    ).all()
-
-    for v, m, b in variants:
-        listings = db.query(ScrapedListing.price).filter(
-            ScrapedListing.matched_variant_id == v.id,
-            ScrapedListing.price > 0
+        # 1. Ambil snapshot harga rata-rata saat ini per varian di database
+        variant_prices_db = {}
+        variants = db.query(MasterVariant, MasterModel, MasterBrand).join(
+            MasterModel, MasterVariant.model_id == MasterModel.id
+        ).join(
+            MasterBrand, MasterModel.brand_id == MasterBrand.id
         ).all()
-        if listings:
-            avg_p = sum(float(l[0]) for l in listings) / len(listings)
-            variant_prices_db[v.id] = {
-                "name": f"{b.name} {m.name} {v.variant_name}",
-                "brand": b.name,
-                "model": m.name,
-                "current_avg_price": avg_p,
-                "sample_count": len(listings)
-            }
 
-    # 2. Polling data live terkini dari platform re-commerce
-    price_drops = []
-    price_hikes = []
-    checked_count = 0
+        for v, m, b in variants:
+            listings = db.query(ScrapedListing.price).filter(
+                ScrapedListing.matched_variant_id == v.id,
+                ScrapedListing.price > 0
+            ).all()
+            if listings:
+                avg_p = sum(float(l[0]) for l in listings) / len(listings)
+                variant_prices_db[v.id] = {
+                    "name": f"{b.name} {m.name} {v.variant_name}",
+                    "brand": b.name,
+                    "model": m.name,
+                    "current_avg_price": avg_p,
+                    "sample_count": len(listings)
+                }
 
-    for brand_name, brand_slug in BRANDS_MAP.items():
-        print(f"Monitoring pergerakan harga brand: {brand_name}...")
-        products = fetch_real_maujual_data(brand_slug)
+        # 2. Polling data live terkini dari platform re-commerce
+        price_drops = []
+        price_hikes = []
+        checked_count = 0
 
-        for prod in products:
-            for v in prod.get("variant_combinations", []):
-                var_name = v.get("name", "")
-                max_p = float(v.get("max_price", 0))
-                min_p = float(v.get("min_price", 0))
-                if max_p <= 0:
-                    continue
+        for brand_name, brand_slug in BRANDS_MAP.items():
+            print(f"Monitoring pergerakan harga brand: {brand_name}...")
+            products = fetch_real_maujual_data(brand_slug)
 
-                live_market_p = (min_p + max_p) / 2.0 if min_p > 0 else max_p * 0.85
-                storage_str = next((c["value"] for c in v.get("components", []) if c["code"] == "storage"), "0")
-                storage_gb = int("".join(filter(str.isdigit, storage_str))) if any(c.isdigit() for c in storage_str) else None
+            for prod in products:
+                for v in prod.get("variant_combinations", []):
+                    var_name = v.get("name", "")
+                    max_p = float(v.get("max_price", 0))
+                    min_p = float(v.get("min_price", 0))
+                    if max_p <= 0:
+                        continue
 
-                var_id, conf, m_name, msrp = matcher.match(var_name, storage_gb=storage_gb)
-                if var_id and var_id in variant_prices_db:
-                    checked_count += 1
-                    old_p = variant_prices_db[var_id]["current_avg_price"]
-                    diff_pct = ((live_market_p - old_p) / old_p) * 100.0
+                    live_market_p = (min_p + max_p) / 2.0 if min_p > 0 else max_p * 0.85
+                    storage_str = next((c["value"] for c in v.get("components", []) if c["code"] == "storage"), "0")
+                    storage_gb = int("".join(filter(str.isdigit, storage_str))) if any(c.isdigit() for c in storage_str) else None
 
-                    if diff_pct <= -alert_threshold_pct:
-                        price_drops.append({
-                            "variant_id": var_id,
-                            "product": variant_prices_db[var_id]["name"],
-                            "old_avg": old_p,
-                            "new_live": live_market_p,
-                            "change_pct": round(diff_pct, 2)
-                        })
-                    elif diff_pct >= alert_threshold_pct:
-                        price_hikes.append({
-                            "variant_id": var_id,
-                            "product": variant_prices_db[var_id]["name"],
-                            "old_avg": old_p,
-                            "new_live": live_market_p,
-                            "change_pct": round(diff_pct, 2)
-                        })
-        time.sleep(0.2)
+                    var_id, conf, m_name, msrp = matcher.match(var_name, storage_gb=storage_gb)
+                    if var_id and var_id in variant_prices_db:
+                        checked_count += 1
+                        old_p = variant_prices_db[var_id]["current_avg_price"]
+                        diff_pct = ((live_market_p - old_p) / old_p) * 100.0
 
-    db.close()
+                        if diff_pct <= -alert_threshold_pct:
+                            price_drops.append({
+                                "variant_id": var_id,
+                                "product": variant_prices_db[var_id]["name"],
+                                "old_avg": old_p,
+                                "new_live": live_market_p,
+                                "change_pct": round(diff_pct, 2)
+                            })
+                        elif diff_pct >= alert_threshold_pct:
+                            price_hikes.append({
+                                "variant_id": var_id,
+                                "product": variant_prices_db[var_id]["name"],
+                                "old_avg": old_p,
+                                "new_live": live_market_p,
+                                "change_pct": round(diff_pct, 2)
+                            })
+            time.sleep(0.2)
+    finally:
+        db.close()
 
     summary = {
         "timestamp": datetime.now().isoformat(),
