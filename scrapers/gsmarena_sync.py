@@ -38,6 +38,7 @@ GSMARENA_BRAND_SLUGS = {
     "Vivo": "vivo-phones-98.php",
     "Realme": "realme-phones-118.php",
     "Infinix": "infinix-phones-119.php",
+    "Google": "google-phones-107.php",
     "Google Pixel": "google-phones-107.php",
     "Asus": "asus-phones-46.php",
     "Sony": "sony-phones-7.php",
@@ -49,6 +50,13 @@ GSMARENA_BRAND_SLUGS = {
     "Nokia": "nokia-phones-1.php",
     "Huawei": "huawei-phones-58.php"
 }
+
+NON_SMARTPHONE_KEYWORDS = ["watch", "band", "tab", "pad", "vr", "glass", "airtag", "buds", "pencil", "tv", "vision"]
+
+def is_smartphone(dev_name: str) -> bool:
+    """Memastikan perangkat yang di-ingest adalah smartphone, bukan tablet atau smartwatch."""
+    dev_lower = dev_name.lower()
+    return not any(re.search(rf"\b{kw}\b", dev_lower) for kw in NON_SMARTPHONE_KEYWORDS)
 
 def clean_text(val: Optional[str]) -> Optional[str]:
     if not val:
@@ -301,7 +309,9 @@ def ingest_gsmarena_brand_devices(
                 dev_name = span.get_text(strip=True) if span else "Unknown"
                 device_links.append((dev_name, f"{BASE_URL}/{a.get('href')}"))
 
-        print(f"[*] Ditemukan {len(device_links)} perangkat di katalog GSMArena untuk {brand_name}.")
+        # Filter hanya perangkat smartphone (mengabaikan tablet, jam tangan, & aksesori)
+        smartphone_links = [dl for dl in device_links if is_smartphone(dl[0])]
+        print(f"[*] Ditemukan {len(device_links)} perangkat ({len(smartphone_links)} smartphone) di katalog GSMArena untuk {brand_name}.")
 
         new_models_added = 0
         new_variants_added = 0
@@ -309,24 +319,29 @@ def ingest_gsmarena_brand_devices(
         processed_devices = []
 
         with get_db() as db:
-            # 1. Pastikan MasterBrand ada
-            brand_obj = db.query(MasterBrand).filter(MasterBrand.name.ilike(brand_name)).first()
+            # 1. Pastikan MasterBrand ada (resolusi alias seperti Google Pixel -> Google)
+            target_b_name = "Google" if brand_name in ["Google", "Google Pixel"] else brand_name
+            brand_obj = db.query(MasterBrand).filter(
+                (MasterBrand.name.ilike(target_b_name)) | (MasterBrand.name.ilike(brand_name))
+            ).first()
             if not brand_obj:
                 brand_obj = MasterBrand(
-                    name=brand_name,
+                    name=target_b_name,
                     country_origin="International",
                     tier_category="Mainstream"
                 )
                 db.add(brand_obj)
                 db.flush()
 
-            for dev_title, dev_url in device_links[:max_devices]:
+            for dev_title, dev_url in smartphone_links[:max_devices]:
                 time.sleep(delay_sec)
                 
                 # Bersihkan nama: jika nama mengandung brand (e.g. "Apple iPhone 16 Pro"), bersihkan duplikasi
                 clean_m_name = dev_title
-                if clean_m_name.lower().startswith(brand_name.lower()):
-                    clean_m_name = clean_m_name[len(brand_name):].strip()
+                for prefix in [brand_name, target_b_name, "Google Pixel", "Google"]:
+                    if clean_m_name.lower().startswith(prefix.lower()):
+                        clean_m_name = clean_m_name[len(prefix):].strip()
+                        break
 
                 # Cek apakah model sudah ada di DB
                 existing_model = db.query(MasterModel).filter(
