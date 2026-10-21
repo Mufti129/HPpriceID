@@ -25,6 +25,7 @@ from pipeline.normalizer import SmartphoneListingNormalizer
 from pipeline.scam_detector import SmartphoneScamDetector
 from data.master_catalog_seed import seed_master_catalog
 from scrapers.real_marketplace_scraper import run_real_scraping_and_ingestion
+from scrapers.gsmarena_sync import GSMARENA_BRAND_SLUGS, ingest_gsmarena_brand_devices
 
 # ==============================================================================
 # PAGE CONFIGURATION
@@ -1397,22 +1398,55 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
             </div>
             """, unsafe_allow_html=True)
 
+            # Auto-Ingestion GSMArena Tool
+            with st.expander("Sinkronisasi & Auto-Ingestion Model Baru dari GSMArena (Skenario B)", expanded=False):
+                st.markdown("""
+                <div style="font-size:0.85rem; color:#94a3b8; margin-bottom:12px; line-height:1.5;">
+                    Pindai dan tambahkan model smartphone terbaru beserta varian RAM & Storage secara otomatis langsung dari database <b>GSMArena</b>.
+                    Data yang di-ingest akan diberi label <span class="status-pill" style="font-size:0.70rem; color:#38bdf8;">Platform: GSMArena</span>.
+                </div>
+                """, unsafe_allow_html=True)
+                c_sync1, c_sync2, c_sync3 = st.columns([1.5, 1.2, 1.5])
+                with c_sync1:
+                    sync_brand_choice = st.selectbox("Pilih Brand Target:", list(GSMARENA_BRAND_SLUGS.keys()), key="sync_brand_sel")
+                with c_sync2:
+                    sync_limit = st.slider("Batas Maksimal Unit:", min_value=1, max_value=10, value=3, key="sync_limit_sel")
+                with c_sync3:
+                    st.write("")
+                    st.write("")
+                    btn_sync = st.button("Jalankan Auto-Ingestion", type="primary", key="btn_run_gsmarena_sync")
+
+                if btn_sync:
+                    with st.spinner(f"Menghubungi GSMArena dan meng-ingest model baru untuk {sync_brand_choice}..."):
+                        sync_res = ingest_gsmarena_brand_devices(sync_brand_choice, max_devices=sync_limit)
+                        if sync_res.get("status") == "success":
+                            st.success(f"Sinkronisasi Berhasil! Ditambahkan: {sync_res['new_models_added']} Model Baru, {sync_res['new_variants_added']} Varian Baru, {sync_res['models_enriched']} Model Diperkaya.")
+                            st.rerun()
+                        else:
+                            st.error(f"Gagal Sinkronisasi: {sync_res.get('message')}")
+
             # Filter Controls
-            col_f1, col_f2, col_f3 = st.columns([1.5, 1.5, 2.0])
+            col_f1, col_f2, col_f3, col_f4 = st.columns([1.2, 1.3, 1.3, 1.7])
             with col_f1:
                 all_b_names = ["Semua Brand"] + [b.name for b in db.query(MasterBrand).order_by(MasterBrand.name).all()]
                 filter_brand = st.selectbox("Filter Brand:", all_b_names, key="katalog_brand")
 
             with col_f2:
-                year_range = st.slider("Rentang Tahun Rilis:", min_value=2010, max_value=2026, value=(2010, 2026), key="katalog_year")
+                all_platforms = ["Semua Platform", "Official Indonesia", "GSMArena"]
+                filter_platform = st.selectbox("Filter Sumber Platform:", all_platforms, key="katalog_platform")
 
             with col_f3:
+                year_range = st.slider("Rentang Tahun Rilis:", min_value=2010, max_value=2026, value=(2010, 2026), key="katalog_year")
+
+            with col_f4:
                 search_query = st.text_input("Cari Model, Seri, atau Chipset:", placeholder="e.g. Pro Max, Snapdragon, Dimensity...", key="katalog_search")
 
             # Build query
             q = db.query(MasterModel, MasterBrand).join(MasterBrand, MasterModel.brand_id == MasterBrand.id)
             if filter_brand != "Semua Brand":
                 q = q.filter(MasterBrand.name == filter_brand)
+            if filter_platform != "Semua Platform":
+                q = q.filter(MasterModel.source_platform == filter_platform)
             q = q.filter(MasterModel.release_year >= year_range[0], MasterModel.release_year <= year_range[1])
 
             if search_query:
@@ -1473,7 +1507,10 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
                         st.markdown(f"""
                         <div class="phone-showcase-card" style="text-align:left; margin-bottom:18px;">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <span class="status-pill" style="font-size:0.65rem;">{html.escape(str(b_item.name))}</span>
+                                <div style="display:flex; gap:6px; align-items:center;">
+                                    <span class="status-pill" style="font-size:0.65rem;">{html.escape(str(b_item.name))}</span>
+                                    <span class="status-pill" style="font-size:0.65rem; background:rgba(56, 189, 248, 0.15); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.3);">{html.escape(str(m_item.source_platform or "Official Indonesia"))}</span>
+                                </div>
                                 <span style="font-family:'JetBrains Mono', monospace; font-size:0.80rem; color:#94a3b8; font-weight:700;">{m_item.release_year}</span>
                             </div>
                             <div class="phone-showcase-title" style="font-size:1.05rem; margin-top:6px;">{html.escape(str(b_item.name))} {html.escape(str(m_item.name))}</div>
@@ -1502,6 +1539,7 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
                     rows_db.append({
                         "Brand": b_item.name,
                         "Model": m_item.name,
+                        "Platform Sumber": m_item.source_platform or "Official Indonesia",
                         "Seri": m_item.series or "-",
                         "Tahun Rilis": m_item.release_year,
                         "MSRP Rilis Perdana": msrp_str,

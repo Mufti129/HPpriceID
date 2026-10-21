@@ -67,6 +67,7 @@ class MasterModel(Base):
     # 6. Sistem Operasi & Media
     os_at_launch = Column(String(50), nullable=True)                    # iOS 17, Android 14 One UI 6.1
     image_url = Column(Text, nullable=True)
+    source_platform = Column(String(50), default="Official Indonesia", nullable=True)  # e.g. 'Official Indonesia', 'GSMArena'
     created_at = Column(DateTime, default=datetime.utcnow)
 
     brand = relationship("MasterBrand", back_populates="models")
@@ -88,6 +89,7 @@ class MasterVariant(Base):
     official_msrp_new = Column(Numeric(15, 2), nullable=False)          # Harga Baru Resmi Peluncuran OTR Indonesia (IDR)
     aliases = Column(Text, nullable=True)                               # Keyword pencarian & singkatan pasar (e.g. ip15promax, 15 pmax 256)
     image_url = Column(Text, nullable=True)
+    source_platform = Column(String(50), default="Official Indonesia", nullable=True)  # e.g. 'Official Indonesia', 'GSMArena'
     created_at = Column(DateTime, default=datetime.utcnow)
 
     model = relationship("MasterModel", back_populates="variants")
