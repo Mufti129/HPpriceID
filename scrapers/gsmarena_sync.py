@@ -48,7 +48,12 @@ GSMARENA_BRAND_SLUGS = {
     "Honor": "honor-phones-121.php",
     "Motorola": "motorola-phones-4.php",
     "Nokia": "nokia-phones-1.php",
-    "Huawei": "huawei-phones-58.php"
+    "Huawei": "huawei-phones-58.php",
+    "ZTE": "zte-phones-62.php",
+    "Meizu": "meizu-phones-74.php",
+    "Sharp": "sharp-phones-23.php",
+    "Lenovo": "lenovo-phones-73.php",
+    "BlackBerry": "blackberry-phones-36.php"
 }
 
 NON_SMARTPHONE_KEYWORDS = ["watch", "band", "tab", "pad", "vr", "glass", "airtag", "buds", "pencil", "tv", "vision"]
