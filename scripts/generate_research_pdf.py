@@ -208,28 +208,26 @@ def build_pdf():
     elements.append(Paragraph("Analisis Taksonomi: Relasi Nama Model Komersial vs Kode Model Pabrikan (Hardware SKU) pada Industri Smartphone Global", title_style))
     elements.append(Paragraph("Kajian Kardinalitas One-to-Many (1:N), Regulasi Pita Seluler, Sertifikasi Telekomunikasi (Postel/FCC/CE), dan Rekomendasi Desain Master Database", subtitle_style))
 
-    # Meta Table Box
+    # Meta Table Box (2x2 Balanced Grid)
     meta_box = [
         [
-            Paragraph("<b>Tanggal Riset:</b> 26 Oktober 2026", body_style),
-            Paragraph("<b>Klasifikasi:</b> Data Engineering & Database Taxonomy", body_style),
-            Paragraph("<b>Platform Sumber:</b> GSMArena, SDPPI, FCC", body_style)
+            Paragraph("<b>Penyusun:</b> Data Analyst & Riset", body_style),
+            Paragraph("<b>Tanggal Riset:</b> 26 Oktober 2026", body_style)
         ],
         [
-            Paragraph("<b>Penyusun:</b> Senior System Architect (Antigravity)", body_style),
-            Paragraph("<b>Target Database:</b> Master Katalog HP (2010 - 2026)", body_style),
-            Paragraph("<b>Versi Dokumen:</b> 1.0 (Final)", body_style)
+            Paragraph("<b>Platform Sumber:</b> GSMArena, SDPPI, FCC", body_style),
+            Paragraph("<b>Target Database:</b> Master Katalog HP (2010 - 2026)", body_style)
         ]
     ]
-    t_meta = Table(meta_box, colWidths=[174, 184, 165])
+    t_meta = Table(meta_box, colWidths=[261, 262])
     t_meta.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), c_card_bg),
         ('BOX', (0, 0), (-1, -1), 0.7, c_border),
         ('INNERGRID', (0, 0), (-1, -1), 0.3, colors.HexColor("#e2e8f0")),
-        ('TOPPADDING', (0, 0), (-1, -1), 3),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-        ('LEFTPADDING', (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 3.5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3.5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
     ]))
     elements.append(t_meta)
     elements.append(Spacer(1, 6))
@@ -554,7 +552,7 @@ def build_pdf():
     # Approval Sign-off Box
     signoff_data = [
         [
-            Paragraph("<b>Dipersiapkan Oleh:</b><br/>AI Senior System Architect<br/>Platform Engineering HPpriceID", body_style),
+            Paragraph("<b>Dipersiapkan Oleh:</b><br/>Data Analyst & Riset<br/>Platform Engineering HPpriceID", body_style),
             Paragraph("<b>Status Review:</b><br/>Technical Feasibility: <b>100% PASSED</b><br/>Data Availability: <b>GSMArena data-spec='models'</b>", body_style),
             Paragraph("<b>Keputusan Arsitektur:</b><br/><font color='#059669'><b>READY FOR IMPLEMENTATION</b></font><br/>Relasi: One-to-Many (Comma String)", body_style)
         ]
