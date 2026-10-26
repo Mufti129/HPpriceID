@@ -116,5 +116,9 @@ class TestGenerationLineage(unittest.TestCase):
         self.assertNotIn("XX MP", str(i_duo["Kamera Depan"]))
         self.assertIn("12 MP", str(i_duo["Kamera Depan"]))
 
+        # 5. Verifikasi 100% kelengkapan Kode Model Pabrikan & 0 NaN di CSV
+        self.assertEqual((df["Kode Model Pabrikan"] != "-").sum(), 402, "Seluruh 402 model harus memiliki Kode Model Pabrikan")
+        self.assertEqual(df.isna().sum().sum(), 0, "CSV tidak boleh memiliki sel NaN")
+
 if __name__ == "__main__":
     unittest.main()
