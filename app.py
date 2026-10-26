@@ -16,6 +16,7 @@ ROOT_DIR = Path(__file__).resolve().parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+
 from models.database import SessionLocal, init_db
 from models.catalog import MasterBrand, MasterModel, MasterVariant, ScrapedListing, MarketPriceStats
 from analytics.pricing_engine import SmartphonePricingEngine
@@ -465,6 +466,11 @@ def apply_dark_plotly_layout(fig, height=420):
 def ensure_database_ready():
     """Memastikan database terinisialisasi dan terisi katalog komprehensif 2010-2026."""
     init_db()
+    try:
+        from data.migrate_generasi_columns import run_migration
+        run_migration()
+    except Exception as em:
+        print(f"[WARN] Error running generation migration: {em}")
     db = SessionLocal()
     try:
         if db.query(MasterVariant).count() == 0:
@@ -1451,15 +1457,20 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
 
             if search_query:
                 pattern = f"%{search_query.strip()}%"
-                q = q.filter(
-                    (MasterModel.name.ilike(pattern)) |
-                    (MasterModel.chipset.ilike(pattern)) |
-                    (MasterModel.series.ilike(pattern)) |
-                    (MasterBrand.name.ilike(pattern)) |
-                    (MasterModel.generation.ilike(pattern)) |
-                    (MasterModel.commercial_generation.ilike(pattern)) |
-                    (MasterModel.lineage_generation.ilike(pattern))
-                )
+                from sqlalchemy import or_
+                s_filters = [
+                    MasterModel.name.ilike(pattern),
+                    MasterModel.chipset.ilike(pattern),
+                    MasterModel.series.ilike(pattern),
+                    MasterBrand.name.ilike(pattern),
+                ]
+                if hasattr(MasterModel, "generation"):
+                    s_filters.append(MasterModel.generation.ilike(pattern))
+                if hasattr(MasterModel, "commercial_generation"):
+                    s_filters.append(MasterModel.commercial_generation.ilike(pattern))
+                if hasattr(MasterModel, "lineage_generation"):
+                    s_filters.append(MasterModel.lineage_generation.ilike(pattern))
+                q = q.filter(or_(*s_filters))
 
             filtered_models = q.order_by(MasterModel.release_year.desc(), MasterBrand.name, MasterModel.name).all()
 
@@ -1507,16 +1518,21 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
                             msrp_strs.append(f"• {v.variant_name}: Rp {float(v.official_msrp_new):,.0f}")
                         msrp_block = "<br>".join(msrp_strs) if msrp_strs else "MSRP belum terdata"
 
-                        gen_badge = f'<span class="status-pill" style="font-size:0.65rem; background:rgba(16, 185, 129, 0.15); color:#10b981; border:1px solid rgba(16, 185, 129, 0.3);">{html.escape(str(m_item.generation))}</span>' if m_item.generation else ''
-                        kom_badge = f'<span class="status-pill" style="font-size:0.65rem; background:rgba(245, 158, 11, 0.15); color:#f59e0b; border:1px solid rgba(245, 158, 11, 0.3);">Komersial: {html.escape(str(m_item.commercial_generation))}</span>' if m_item.commercial_generation else ''
-                        silsilah_html = f'<div style="margin-top:6px; font-size:0.72rem; color:#94a3b8; font-style:italic; border-left:2px solid #3b82f6; padding-left:6px;">{html.escape(str(m_item.lineage_generation))}</div>' if m_item.lineage_generation else ''
+                        gen_val = getattr(m_item, "generation", None)
+                        kom_val = getattr(m_item, "commercial_generation", None)
+                        lin_val = getattr(m_item, "lineage_generation", None)
+                        plat_val = getattr(m_item, "source_platform", None) or "Official Indonesia"
+
+                        gen_badge = f'<span class="status-pill" style="font-size:0.65rem; background:rgba(16, 185, 129, 0.15); color:#10b981; border:1px solid rgba(16, 185, 129, 0.3);">{html.escape(str(gen_val))}</span>' if gen_val else ''
+                        kom_badge = f'<span class="status-pill" style="font-size:0.65rem; background:rgba(245, 158, 11, 0.15); color:#f59e0b; border:1px solid rgba(245, 158, 11, 0.3);">Komersial: {html.escape(str(kom_val))}</span>' if kom_val else ''
+                        silsilah_html = f'<div style="margin-top:6px; font-size:0.72rem; color:#94a3b8; font-style:italic; border-left:2px solid #3b82f6; padding-left:6px;">{html.escape(str(lin_val))}</div>' if lin_val else ''
 
                         st.markdown(f"""
                         <div class="phone-showcase-card" style="text-align:left; margin-bottom:18px;">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">
                                     <span class="status-pill" style="font-size:0.65rem;">{html.escape(str(b_item.name))}</span>
-                                    <span class="status-pill" style="font-size:0.65rem; background:rgba(56, 189, 248, 0.15); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.3);">{html.escape(str(m_item.source_platform or "Official Indonesia"))}</span>
+                                    <span class="status-pill" style="font-size:0.65rem; background:rgba(56, 189, 248, 0.15); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.3);">{html.escape(str(plat_val))}</span>
                                     {gen_badge}
                                     {kom_badge}
                                 </div>
@@ -1549,10 +1565,10 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
                     rows_db.append({
                         "Brand": b_item.name,
                         "Model": m_item.name,
-                        "Generasi": m_item.generation or "-",
-                        "Generasi Komersial": m_item.commercial_generation or "-",
-                        "Generasi Silsilah": m_item.lineage_generation or "-",
-                        "Platform Sumber": m_item.source_platform or "Official Indonesia",
+                        "Generasi": getattr(m_item, "generation", None) or "-",
+                        "Generasi Komersial": getattr(m_item, "commercial_generation", None) or "-",
+                        "Generasi Silsilah": getattr(m_item, "lineage_generation", None) or "-",
+                        "Platform Sumber": getattr(m_item, "source_platform", None) or "Official Indonesia",
                         "Seri": m_item.series or "-",
                         "Tahun Rilis": m_item.release_year,
                         "MSRP Rilis Perdana": msrp_str,
