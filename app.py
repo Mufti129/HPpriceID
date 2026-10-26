@@ -1474,6 +1474,44 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
 
             filtered_models = q.order_by(MasterModel.release_year.desc(), MasterBrand.name, MasterModel.name).all()
 
+            from sqlalchemy import text
+            try:
+                gen_rows = db.execute(text("SELECT id, generation, commercial_generation, lineage_generation FROM master_models")).fetchall()
+                gen_lookup = {r[0]: (r[1], r[2], r[3]) for r in gen_rows}
+            except Exception:
+                gen_lookup = {}
+
+            csv_gen_lookup = {}
+            csv_file = ROOT_DIR / "data" / "datahptambahgenerasi.csv"
+            if csv_file.exists():
+                try:
+                    import csv
+                    with open(csv_file, mode="r", encoding="utf-8") as f:
+                        reader = csv.DictReader(f)
+                        for r in reader:
+                            k = (r.get("Brand", "").strip().lower(), r.get("Model", "").strip().lower())
+                            csv_gen_lookup[k] = (r.get("Generasi"), r.get("Generasi Komersial"), r.get("Keterangan Silsilah"))
+                except Exception:
+                    pass
+
+            def resolve_model_generation(m, b):
+                g = getattr(m, "generation", None)
+                c = getattr(m, "commercial_generation", None)
+                l = getattr(m, "lineage_generation", None)
+                if not g or not c or not l:
+                    db_vals = gen_lookup.get(m.id)
+                    if db_vals:
+                        g = g or db_vals[0]
+                        c = c or db_vals[1]
+                        l = l or db_vals[2]
+                if not g or not c or not l:
+                    csv_vals = csv_gen_lookup.get((b.name.strip().lower(), m.name.strip().lower()))
+                    if csv_vals:
+                        g = g or csv_vals[0]
+                        c = c or csv_vals[1]
+                        l = l or csv_vals[2]
+                return g, c, l
+
             view_mode = st.radio("Pilih Format Tampilan:", ["Tampilan Galeri Visual Produk", "Tabel Database Spesifikasi Lengkap"], horizontal=True, key="katalog_view_mode")
 
             st.markdown(f"**Menampilkan {len(filtered_models)} model smartphone yang sesuai filter:**")
@@ -1518,9 +1556,7 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
                             msrp_strs.append(f"• {v.variant_name}: Rp {float(v.official_msrp_new):,.0f}")
                         msrp_block = "<br>".join(msrp_strs) if msrp_strs else "MSRP belum terdata"
 
-                        gen_val = getattr(m_item, "generation", None)
-                        kom_val = getattr(m_item, "commercial_generation", None)
-                        lin_val = getattr(m_item, "lineage_generation", None)
+                        gen_val, kom_val, lin_val = resolve_model_generation(m_item, b_item)
                         plat_val = getattr(m_item, "source_platform", None) or "Official Indonesia"
 
                         gen_badge = f'<span class="status-pill" style="font-size:0.65rem; background:rgba(16, 185, 129, 0.15); color:#10b981; border:1px solid rgba(16, 185, 129, 0.3);">{html.escape(str(gen_val))}</span>' if gen_val else ''
@@ -1562,12 +1598,14 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
                     var_summary = ", ".join([f"{v.storage_gb}GB" for v in vars_m]) if vars_m else "-"
                     msrp_str = f"Rp {min_msrp:,.0f}" if min_msrp == max_msrp else f"Rp {min_msrp:,.0f} - Rp {max_msrp:,.0f}"
 
+                    gen_val, kom_val, lin_val = resolve_model_generation(m_item, b_item)
+
                     rows_db.append({
                         "Brand": b_item.name,
                         "Model": m_item.name,
-                        "Generasi": getattr(m_item, "generation", None) or "-",
-                        "Generasi Komersial": getattr(m_item, "commercial_generation", None) or "-",
-                        "Generasi Silsilah": getattr(m_item, "lineage_generation", None) or "-",
+                        "Generasi": gen_val or "-",
+                        "Generasi Komersial": kom_val or "-",
+                        "Generasi Silsilah": lin_val or "-",
                         "Platform Sumber": getattr(m_item, "source_platform", None) or "Official Indonesia",
                         "Seri": m_item.series or "-",
                         "Tahun Rilis": m_item.release_year,
