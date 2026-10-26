@@ -391,7 +391,10 @@ def ingest_gsmarena_brand_devices(
                         weight_grams=parsed["weight_grams"],
                         os_at_launch=parsed["os_at_launch"],
                         image_url=parsed["image_url"],
-                        source_platform="GSMArena"  # <-- Kolom platform baru
+                        source_platform="GSMArena",
+                        generation=f"Gen {parsed['release_year'] - 2009}" if parsed.get("release_year") else "Gen 1",
+                        commercial_generation=f"Gen {re.search(r'\b(\d+)\b', clean_m_name).group(1)}" if re.search(r'\b(\d+)\b', clean_m_name) else "Gen 1",
+                        lineage_generation=f"Ingested dari katalog GSMArena ({clean_m_name})"
                     )
                     db.add(new_model)
                     db.flush()

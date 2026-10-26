@@ -1455,7 +1455,10 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
                     (MasterModel.name.ilike(pattern)) |
                     (MasterModel.chipset.ilike(pattern)) |
                     (MasterModel.series.ilike(pattern)) |
-                    (MasterBrand.name.ilike(pattern))
+                    (MasterBrand.name.ilike(pattern)) |
+                    (MasterModel.generation.ilike(pattern)) |
+                    (MasterModel.commercial_generation.ilike(pattern)) |
+                    (MasterModel.lineage_generation.ilike(pattern))
                 )
 
             filtered_models = q.order_by(MasterModel.release_year.desc(), MasterBrand.name, MasterModel.name).all()
@@ -1504,16 +1507,23 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
                             msrp_strs.append(f"• {v.variant_name}: Rp {float(v.official_msrp_new):,.0f}")
                         msrp_block = "<br>".join(msrp_strs) if msrp_strs else "MSRP belum terdata"
 
+                        gen_badge = f'<span class="status-pill" style="font-size:0.65rem; background:rgba(16, 185, 129, 0.15); color:#10b981; border:1px solid rgba(16, 185, 129, 0.3);">{html.escape(str(m_item.generation))}</span>' if m_item.generation else ''
+                        kom_badge = f'<span class="status-pill" style="font-size:0.65rem; background:rgba(245, 158, 11, 0.15); color:#f59e0b; border:1px solid rgba(245, 158, 11, 0.3);">Komersial: {html.escape(str(m_item.commercial_generation))}</span>' if m_item.commercial_generation else ''
+                        silsilah_html = f'<div style="margin-top:6px; font-size:0.72rem; color:#94a3b8; font-style:italic; border-left:2px solid #3b82f6; padding-left:6px;">{html.escape(str(m_item.lineage_generation))}</div>' if m_item.lineage_generation else ''
+
                         st.markdown(f"""
                         <div class="phone-showcase-card" style="text-align:left; margin-bottom:18px;">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <div style="display:flex; gap:6px; align-items:center;">
+                                <div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">
                                     <span class="status-pill" style="font-size:0.65rem;">{html.escape(str(b_item.name))}</span>
                                     <span class="status-pill" style="font-size:0.65rem; background:rgba(56, 189, 248, 0.15); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.3);">{html.escape(str(m_item.source_platform or "Official Indonesia"))}</span>
+                                    {gen_badge}
+                                    {kom_badge}
                                 </div>
                                 <span style="font-family:'JetBrains Mono', monospace; font-size:0.80rem; color:#94a3b8; font-weight:700;">{m_item.release_year}</span>
                             </div>
                             <div class="phone-showcase-title" style="font-size:1.05rem; margin-top:6px;">{html.escape(str(b_item.name))} {html.escape(str(m_item.name))}</div>
+                            {silsilah_html}
                             <div style="font-size:0.78rem; color:#cbd5e1; margin-top:6px; line-height:1.5;">
                                 <b>SoC:</b> <span style="color:#60a5fa;">{html.escape(str(m_item.chipset or '-'))}</span><br>
                                 <b>Display:</b> {html.escape(str(m_item.display_type or '-'))} ({m_item.refresh_rate_hz}Hz)<br>
@@ -1539,6 +1549,9 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
                     rows_db.append({
                         "Brand": b_item.name,
                         "Model": m_item.name,
+                        "Generasi": m_item.generation or "-",
+                        "Generasi Komersial": m_item.commercial_generation or "-",
+                        "Generasi Silsilah": m_item.lineage_generation or "-",
                         "Platform Sumber": m_item.source_platform or "Official Indonesia",
                         "Seri": m_item.series or "-",
                         "Tahun Rilis": m_item.release_year,

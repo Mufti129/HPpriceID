@@ -68,6 +68,12 @@ class MasterModel(Base):
     os_at_launch = Column(String(50), nullable=True)                    # iOS 17, Android 14 One UI 6.1
     image_url = Column(Text, nullable=True)
     source_platform = Column(String(50), default="Official Indonesia", nullable=True)  # e.g. 'Official Indonesia', 'GSMArena'
+    
+    # 7. Silsilah & Klasifikasi Generasi Smartphone (Panduan Standarisasi Dataset)
+    generation = Column(String(50), nullable=True)                      # Generasi Riil / Hardware Lineage: Gen 15, Gen 20
+    commercial_generation = Column(String(50), nullable=True)           # Generasi Komersial / Branding: Gen 24, Gen 18, Gen 55
+    lineage_generation = Column(Text, nullable=True)                    # Keterangan Silsilah Historis Penetapan Generasi
+    
     created_at = Column(DateTime, default=datetime.utcnow)
 
     brand = relationship("MasterBrand", back_populates="models")
