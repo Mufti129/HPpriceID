@@ -83,6 +83,38 @@ class TestGenerationLineage(unittest.TestCase):
         self.assertIn("Generasi", df.columns)
         self.assertIn("Generasi Komersial", df.columns)
         self.assertIn("Keterangan Silsilah", df.columns)
+        self.assertIn("Kode Model Pabrikan", df.columns)
+
+    def test_scraped_discrepancies_and_factory_codes(self):
+        """Memastikan perbaikan diskrepansi scraping dan kode model pabrikan valid."""
+        csv_file = Path("data/datahptambahgenerasi.csv")
+        df = pd.read_csv(csv_file)
+
+        # 1. Verifikasi Realme 16x
+        r_16x = df[df["Model"] == "16x"].iloc[0]
+        self.assertEqual(int(r_16x["Tahun Rilis"]), 2026)
+        self.assertIn("Dimensity 6300", r_16x["Chipset / SoC"])
+        self.assertEqual(r_16x["Jaringan"], "5G")
+        self.assertEqual(r_16x["Kode Model Pabrikan"], "RMX5270")
+
+        # 2. Verifikasi Tecno Camon Air
+        t_camon = df[df["Model"] == "Camon Air"].iloc[0]
+        self.assertEqual(int(t_camon["Tahun Rilis"]), 2026)
+        self.assertIn("Helio G200", t_camon["Chipset / SoC"])
+        self.assertEqual(t_camon["Kode Model Pabrikan"], "CN6c")
+
+        # 3. Verifikasi Ponsel 5G (seperti Honor Magic9 dan Oppo K15x)
+        h_magic = df[df["Model"] == "Magic9"].iloc[0]
+        self.assertEqual(h_magic["Jaringan"], "5G")
+
+        o_k15x = df[df["Model"] == "K15x"].iloc[0]
+        self.assertEqual(o_k15x["Jaringan"], "5G")
+        self.assertEqual(o_k15x["Kode Model Pabrikan"], "CPH2913, PMX110")
+
+        # 4. Verifikasi Apple iPhone Duo selfie camera sanitasi
+        i_duo = df[df["Model"] == "iPhone Duo"].iloc[0]
+        self.assertNotIn("XX MP", str(i_duo["Kamera Depan"]))
+        self.assertIn("12 MP", str(i_duo["Kamera Depan"]))
 
 if __name__ == "__main__":
     unittest.main()

@@ -1445,7 +1445,7 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
                 year_range = st.slider("Rentang Tahun Rilis:", min_value=2010, max_value=2026, value=(2010, 2026), key="katalog_year")
 
             with col_f4:
-                search_query = st.text_input("Cari Model, Seri, atau Chipset:", placeholder="e.g. Pro Max, Snapdragon, Dimensity...", key="katalog_search")
+                search_query = st.text_input("Cari Model, Seri, Kode Model Pabrikan, atau Chipset:", placeholder="e.g. Pro Max, CPH2913, SM-S928B, Snapdragon...", key="katalog_search")
 
             # Build query
             q = db.query(MasterModel, MasterBrand).join(MasterBrand, MasterModel.brand_id == MasterBrand.id)
@@ -1464,6 +1464,8 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
                     MasterModel.series.ilike(pattern),
                     MasterBrand.name.ilike(pattern),
                 ]
+                if hasattr(MasterModel, "factory_model_code"):
+                    s_filters.append(MasterModel.factory_model_code.ilike(pattern))
                 if hasattr(MasterModel, "generation"):
                     s_filters.append(MasterModel.generation.ilike(pattern))
                 if hasattr(MasterModel, "commercial_generation"):
@@ -1490,7 +1492,7 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
                         reader = csv.DictReader(f)
                         for r in reader:
                             k = (r.get("Brand", "").strip().lower(), r.get("Model", "").strip().lower())
-                            csv_gen_lookup[k] = (r.get("Generasi"), r.get("Generasi Komersial"), r.get("Keterangan Silsilah"))
+                            csv_gen_lookup[k] = (r.get("Generasi"), r.get("Generasi Komersial"), r.get("Keterangan Silsilah"), r.get("Kode Model Pabrikan"))
                 except Exception:
                     pass
 
@@ -1498,19 +1500,22 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
                 g = getattr(m, "generation", None)
                 c = getattr(m, "commercial_generation", None)
                 l = getattr(m, "lineage_generation", None)
+                f_code = getattr(m, "factory_model_code", None)
                 if not g or not c or not l:
                     db_vals = gen_lookup.get(m.id)
                     if db_vals:
                         g = g or db_vals[0]
                         c = c or db_vals[1]
                         l = l or db_vals[2]
-                if not g or not c or not l:
+                if not g or not c or not l or not f_code:
                     csv_vals = csv_gen_lookup.get((b.name.strip().lower(), m.name.strip().lower()))
                     if csv_vals:
                         g = g or csv_vals[0]
                         c = c or csv_vals[1]
                         l = l or csv_vals[2]
-                return g, c, l
+                        if not f_code:
+                            f_code = csv_vals[3] if len(csv_vals) > 3 else None
+                return g, c, l, f_code
 
             view_mode = st.radio("Pilih Format Tampilan:", ["Tampilan Galeri Visual Produk", "Tabel Database Spesifikasi Lengkap"], horizontal=True, key="katalog_view_mode")
 
@@ -1556,11 +1561,12 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
                             msrp_strs.append(f"• {v.variant_name}: Rp {float(v.official_msrp_new):,.0f}")
                         msrp_block = "<br>".join(msrp_strs) if msrp_strs else "MSRP belum terdata"
 
-                        gen_val, kom_val, lin_val = resolve_model_generation(m_item, b_item)
+                        gen_val, kom_val, lin_val, f_code_val = resolve_model_generation(m_item, b_item)
                         plat_val = getattr(m_item, "source_platform", None) or "Official Indonesia"
 
                         gen_badge = f'<span class="status-pill" style="font-size:0.65rem; background:rgba(16, 185, 129, 0.15); color:#10b981; border:1px solid rgba(16, 185, 129, 0.3);">{html.escape(str(gen_val))}</span>' if gen_val else ''
                         kom_badge = f'<span class="status-pill" style="font-size:0.65rem; background:rgba(245, 158, 11, 0.15); color:#f59e0b; border:1px solid rgba(245, 158, 11, 0.3);">Komersial: {html.escape(str(kom_val))}</span>' if kom_val else ''
+                        code_badge = f'<span class="status-pill" style="font-size:0.65rem; background:rgba(147, 51, 234, 0.15); color:#c084fc; border:1px solid rgba(147, 51, 234, 0.3); font-family:\'JetBrains Mono\', monospace;">Kode: {html.escape(str(f_code_val))}</span>' if (f_code_val and f_code_val != '-') else ''
                         silsilah_html = f'<div style="margin-top:6px; font-size:0.72rem; color:#94a3b8; font-style:italic; border-left:2px solid #3b82f6; padding-left:6px;">{html.escape(str(lin_val))}</div>' if lin_val else ''
 
                         st.markdown(f"""
@@ -1571,12 +1577,14 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
                                     <span class="status-pill" style="font-size:0.65rem; background:rgba(56, 189, 248, 0.15); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.3);">{html.escape(str(plat_val))}</span>
                                     {gen_badge}
                                     {kom_badge}
+                                    {code_badge}
                                 </div>
                                 <span style="font-family:'JetBrains Mono', monospace; font-size:0.80rem; color:#94a3b8; font-weight:700;">{m_item.release_year}</span>
                             </div>
                             <div class="phone-showcase-title" style="font-size:1.05rem; margin-top:6px;">{html.escape(str(b_item.name))} {html.escape(str(m_item.name))}</div>
                             {silsilah_html}
                             <div style="font-size:0.78rem; color:#cbd5e1; margin-top:6px; line-height:1.5;">
+                                <b>Kode Model:</b> <span style="font-family:'JetBrains Mono', monospace; color:#38bdf8;">{html.escape(str(f_code_val or '-'))}</span><br>
                                 <b>SoC:</b> <span style="color:#60a5fa;">{html.escape(str(m_item.chipset or '-'))}</span><br>
                                 <b>Display:</b> {html.escape(str(m_item.display_type or '-'))} ({m_item.refresh_rate_hz}Hz)<br>
                                 <b>Kamera:</b> {html.escape(str(m_item.main_camera_mp or '-'))} (OIS: {'Ya' if m_item.has_ois else 'Tidak'})<br>
@@ -1598,11 +1606,12 @@ elif menu == "Master Katalog Smartphone (2010 - 2026)":
                     var_summary = ", ".join([f"{v.storage_gb}GB" for v in vars_m]) if vars_m else "-"
                     msrp_str = f"Rp {min_msrp:,.0f}" if min_msrp == max_msrp else f"Rp {min_msrp:,.0f} - Rp {max_msrp:,.0f}"
 
-                    gen_val, kom_val, lin_val = resolve_model_generation(m_item, b_item)
+                    gen_val, kom_val, lin_val, f_code_val = resolve_model_generation(m_item, b_item)
 
                     rows_db.append({
                         "Brand": b_item.name,
                         "Model": m_item.name,
+                        "Kode Model Pabrikan": f_code_val or "-",
                         "Generasi": gen_val or "-",
                         "Generasi Komersial": kom_val or "-",
                         "Generasi Silsilah": lin_val or "-",

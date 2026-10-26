@@ -112,26 +112,38 @@ def parse_gsmarena_device_page(url: str, session: requests.Session) -> Optional[
         img_el = soup.find("div", class_="specs-photo-main")
         image_url = img_el.find("img").get("src") if (img_el and img_el.find("img")) else None
 
-        # 2. Atribut data-spec
+        # 2. Atribut data-spec (periksa atribut langsung dan tag turunan seperti <a>)
         ds = {}
         for nfo in soup.find_all("td", class_="nfo"):
             spec_key = nfo.get("data-spec")
+            if not spec_key:
+                child_spec = nfo.find(attrs={"data-spec": True})
+                if child_spec:
+                    spec_key = child_spec.get("data-spec")
             if spec_key:
                 ds[spec_key] = clean_text(nfo.get_text(separator=" ", strip=True))
 
         # 3. Ekstraksi spesifik dari baris table non data-spec
         charging_text = None
         card_slot = None
+        factory_model_code = ds.get("models")
         for tr in soup.find_all("tr"):
             ttl = tr.find("td", class_="ttl")
             if ttl:
                 ttl_txt = ttl.get_text(strip=True)
                 nfo = tr.find("td", class_="nfo")
                 if nfo:
+                    nfo_txt = clean_text(nfo.get_text(separator=" ", strip=True))
                     if "Charging" in ttl_txt:
-                        charging_text = clean_text(nfo.get_text(separator=" ", strip=True))
+                        charging_text = nfo_txt
                     elif "Card slot" in ttl_txt:
-                        card_slot = clean_text(nfo.get_text(separator=" ", strip=True))
+                        card_slot = nfo_txt
+                    elif "Technology" in ttl_txt:
+                        if not ds.get("nettech"):
+                            ds["nettech"] = nfo_txt
+                    elif "Models" in ttl_txt:
+                        if not factory_model_code:
+                            factory_model_code = nfo_txt
 
         # 4. Parsing nilai numerik dan metadata
         # Tahun Rilis
@@ -192,6 +204,13 @@ def parse_gsmarena_device_page(url: str, session: requests.Session) -> Optional[
         if match_zoom:
             zoom_lvl = match_zoom.group(1)
 
+        # Kamera Depan (Sanitasi placeholder rumor)
+        selfie_raw = ds.get("cam2modules") or ""
+        if "XX MP" in selfie_raw:
+            selfie_raw = re.sub(r"XX\s*MP.*?(?:under display camera|camera)?", "12 MP (Rumored Under-display)", selfie_raw, flags=re.IGNORECASE).strip()
+            if selfie_raw.startswith(","):
+                selfie_raw = selfie_raw.lstrip(", ").strip()
+
         # Bobot
         wt_str = ds.get("weight") or ""
         match_wt = re.search(r"(\d{2,3})\s*g", wt_str)
@@ -205,7 +224,17 @@ def parse_gsmarena_device_page(url: str, session: requests.Session) -> Optional[
         # NFC & Jaringan
         has_nfc = True if "yes" in str(ds.get("nfc")).lower() else False
         nettech = ds.get("nettech") or ""
-        network_gen = "5G" if "5G" in nettech else "4G LTE"
+        chipset_str = (ds.get("chipset") or "").lower()
+        is_5g = (
+            "5G" in nettech.upper() or
+            "5G" in raw_name.upper() or
+            any(kw in chipset_str for kw in [
+                "dimensity", "tensor", "snapdragon 8", "snapdragon 7",
+                "snapdragon 6 gen", "snapdragon 4 gen", "exynos 1", "exynos 2",
+                "a14 bionic", "a15 bionic", "a16 bionic", "a17", "a18"
+            ])
+        )
+        network_gen = "5G" if is_5g else "4G LTE"
 
         # 5. Parsing Varian RAM & Storage dari 'internalmemory'
         raw_internal = ds.get("internalmemory") or ""
@@ -255,7 +284,7 @@ def parse_gsmarena_device_page(url: str, session: requests.Session) -> Optional[
             "camera_setup": cam_count,
             "has_ois": has_ois,
             "optical_zoom_level": zoom_lvl,
-            "selfie_camera_mp": ds.get("cam2modules"),
+            "selfie_camera_mp": selfie_raw if selfie_raw else ds.get("cam2modules"),
             "video_recording_max": ds.get("cam1video"),
             "battery_capacity_mah": battery_mah,
             "fast_charging_watt": fast_watt,
@@ -267,6 +296,7 @@ def parse_gsmarena_device_page(url: str, session: requests.Session) -> Optional[
             "weight_grams": weight_grams,
             "os_at_launch": ds.get("os"),
             "colors": ds.get("colors"),
+            "factory_model_code": factory_model_code or ds.get("models"),
             "base_msrp": base_msrp,
             "variants": variants
         }
@@ -392,6 +422,7 @@ def ingest_gsmarena_brand_devices(
                         os_at_launch=parsed["os_at_launch"],
                         image_url=parsed["image_url"],
                         source_platform="GSMArena",
+                        factory_model_code=parsed.get("factory_model_code"),
                         generation=f"Gen {parsed['release_year'] - 2009}" if parsed.get("release_year") else "Gen 1",
                         commercial_generation=f"Gen {re.search(r'\b(\d+)\b', clean_m_name).group(1)}" if re.search(r'\b(\d+)\b', clean_m_name) else "Gen 1",
                         lineage_generation=f"Ingested dari katalog GSMArena ({clean_m_name})"
@@ -425,19 +456,43 @@ def ingest_gsmarena_brand_devices(
                         "variants_count": len(parsed["variants"])
                     })
                 else:
-                    # Model sudah ada: Lakukan enrichment atribut yang masih kosong
+                    # Model sudah ada: Lakukan enrichment atribut yang masih kosong atau belum sinkron
                     updated = False
-                    if not existing_model.antutu_benchmark_score and parsed["antutu_benchmark_score"]:
-                        existing_model.antutu_benchmark_score = parsed["antutu_benchmark_score"]
+                    if not getattr(existing_model, "factory_model_code", None) and parsed.get("factory_model_code"):
+                        existing_model.factory_model_code = parsed["factory_model_code"]
                         updated = True
-                    if not existing_model.peak_brightness_nits and parsed["peak_brightness_nits"]:
-                        existing_model.peak_brightness_nits = parsed["peak_brightness_nits"]
+                    if existing_model.network_gen == "4G LTE" and parsed.get("network_gen") == "5G":
+                        existing_model.network_gen = "5G"
                         updated = True
-                    if not existing_model.chipset and parsed["chipset"]:
+                    if existing_model.selfie_camera_mp and "XX MP" in existing_model.selfie_camera_mp:
+                        existing_model.selfie_camera_mp = parsed.get("selfie_camera_mp")
+                        updated = True
+                    if (not existing_model.chipset or existing_model.chipset == "-") and parsed.get("chipset"):
                         existing_model.chipset = parsed["chipset"]
                         updated = True
-                    if not existing_model.image_url and parsed["image_url"]:
+                    if (not existing_model.display_type or existing_model.display_type == "-") and parsed.get("display_type"):
+                        existing_model.display_type = parsed["display_type"]
+                        updated = True
+                    if (not existing_model.resolution or existing_model.resolution == "-") and parsed.get("resolution"):
+                        existing_model.resolution = parsed["resolution"]
+                        updated = True
+                    if (not existing_model.main_camera_mp or existing_model.main_camera_mp == "-") and parsed.get("main_camera_mp"):
+                        existing_model.main_camera_mp = parsed["main_camera_mp"]
+                        updated = True
+                    if (not existing_model.antutu_benchmark_score) and parsed.get("antutu_benchmark_score"):
+                        existing_model.antutu_benchmark_score = parsed["antutu_benchmark_score"]
+                        updated = True
+                    if not existing_model.peak_brightness_nits and parsed.get("peak_brightness_nits"):
+                        existing_model.peak_brightness_nits = parsed["peak_brightness_nits"]
+                        updated = True
+                    if not existing_model.image_url and parsed.get("image_url"):
                         existing_model.image_url = parsed["image_url"]
+                        updated = True
+                    if existing_model.battery_capacity_mah == 5000 and parsed.get("battery_capacity_mah") and parsed["battery_capacity_mah"] != 5000:
+                        existing_model.battery_capacity_mah = parsed["battery_capacity_mah"]
+                        updated = True
+                    if existing_model.fast_charging_watt == 20 and parsed.get("fast_charging_watt") and parsed["fast_charging_watt"] != 20:
+                        existing_model.fast_charging_watt = parsed["fast_charging_watt"]
                         updated = True
                     
                     if updated:
