@@ -104,6 +104,7 @@ class TestGSMArenaIngestion(unittest.TestCase):
                 <tr><td class="nfo" data-spec="bodyother">IP68 dust/water resistant</td></tr>
                 <tr><td class="nfo" data-spec="weight">210 g</td></tr>
                 <tr><td class="nfo" data-spec="os">Android 15</td></tr>
+                <tr><td class="nfo" data-spec="models">A3634, A3575, A3635, iPhone18,5</td></tr>
                 <tr><td class="nfo" data-spec="colors">Titanium Black, Glacier White</td></tr>
                 <tr><td class="nfo" data-spec="price">About 900 EUR</td></tr>
             </table>
@@ -129,12 +130,22 @@ class TestGSMArenaIngestion(unittest.TestCase):
                 self.assertEqual(model_saved.source_platform, "GSMArena")
                 self.assertEqual(model_saved.chipset, "Snapdragon 8 Gen 4")
                 self.assertEqual(model_saved.release_year, 2025)
+                self.assertEqual(model_saved.factory_model_code, "A3634, A3575, A3635, iPhone18,5")
                 
                 # Verifikasi varian tersimpan
                 variants_saved = self.db.query(MasterVariant).filter(MasterVariant.model_id == model_saved.id).all()
                 self.assertGreaterEqual(len(variants_saved), 1)
                 for var in variants_saved:
                     self.assertEqual(var.source_platform, "GSMArena")
+
+                # Uji enrichment: jika kode model di DB berbeda, harus di-update otomatis oleh pipeline
+                model_saved.factory_model_code = "A3485" # Set ke kode lama yang salah
+                self.db.commit()
+
+                # Jalankan re-ingestion / sync ulang
+                res_sync = ingest_gsmarena_brand_devices("Apple", max_devices=1, delay_sec=0)
+                self.db.refresh(model_saved)
+                self.assertEqual(model_saved.factory_model_code, "A3634, A3575, A3635, iPhone18,5", "Pipeline harus memperbarui kode model jika berbeda dengan GSMArena")
 
                 # Cleanup test fixture
                 self.db.delete(model_saved)

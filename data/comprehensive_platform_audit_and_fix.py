@@ -22,11 +22,10 @@ CSV_PATH = ROOT_DIR / "data" / "datahptambahgenerasi.csv"
 
 # Kamus Kode Model Pabrikan Lengkap untuk Seluruh Model (Official Indonesia & GSMArena)
 COMPREHENSIVE_MODEL_CODES = {
-    # Apple
-    ("apple", "iphone duo"): "A3401, A3402",
-    ("apple", "iphone 18 pro max"): "A3501, A3502",
-    ("apple", "iphone 18 pro"): "A3497, A3498",
-    ("apple", "iphone 17e"): "A3485",
+    ("apple", "iphone duo"): "A3720, A3721, A3447, A3719, iPhone19,4",
+    ("apple", "iphone 18 pro max"): "A3717, A3473, A3716, A3718, iPhone19,3",
+    ("apple", "iphone 18 pro"): "A3714, A3472, A3713, A3715, iPhone19,2",
+    ("apple", "iphone 17e"): "A3634, A3575, A3635, iPhone18,5",
     ("apple", "iphone 16 pro max"): "A3296, A3084, A3295, A3297",
     ("apple", "iphone 16 pro"): "A3293, A3083, A3292, A3294",
     ("apple", "iphone 16 plus"): "A3290, A3082, A3289, A3291",
@@ -352,10 +351,10 @@ COMPREHENSIVE_MODEL_CODES = {
     ("google", "pixel 4a"): "G025J, GA02099",
     ("google", "pixel 4 xl"): "G020J, GA01181",
     ("google", "pixel 2 xl"): "G011C",
-    ("google", "pixel 11 pro fold"): "GD11F",
-    ("google", "pixel 11 pro xl"): "GD11X",
-    ("google", "pixel 11 pro"): "GD11P",
-    ("google", "pixel 11"): "GD110",
+    ("google", "pixel 11 pro fold"): "GZDQ6",
+    ("google", "pixel 11 pro xl"): "G4HCD, GBC0H",
+    ("google", "pixel 11 pro"): "GM45K, G7SWN",
+    ("google", "pixel 11"): "GUJ0N, GPQQ7",
 
     # Asus
     ("asus", "zenfone 11 ultra"): "AI2401_H",
@@ -363,7 +362,7 @@ COMPREHENSIVE_MODEL_CODES = {
     ("asus", "zenfone 9"): "AI2202",
     ("asus", "zenfone 5z"): "ZS620KL",
     ("asus", "zenfone 2 (ze551ml)"): "ZE551ML, Z00AD",
-    ("asus", "zenfone 12 ultra"): "AI2501_H, ASUS_AI2501",
+    ("asus", "zenfone 12 ultra"): "AI2501, AI2501H, I2501C, AI2501B",
     ("asus", "rog phone 8 pro"): "AI2401_C, AI2401_A",
     ("asus", "rog phone 8"): "AI2401_D, AI2401_A",
     ("asus", "rog phone 7 ultimate"): "AI2205_D",
@@ -371,9 +370,9 @@ COMPREHENSIVE_MODEL_CODES = {
     ("asus", "rog phone 6d ultimate"): "AI2203_D",
     ("asus", "rog phone 6"): "AI2201_A",
     ("asus", "rog phone ii"): "ASUS_I001DA, ZS660KL",
-    ("asus", "rog phone 9 pro"): "AI2501_A, AI2501_D",
-    ("asus", "rog phone 9"): "AI2501_A",
-    ("asus", "rog phone 9 fe"): "AI2501_F",
+    ("asus", "rog phone 9 pro"): "AI2501-16G512G-BK, AI2501-24G1T-BK",
+    ("asus", "rog phone 9"): "AI2501-12G256G-BK, AI2501-12G256G-WH, AI2501-16G512G-WH, AI2501-16G512G-BK",
+    ("asus", "rog phone 9 fe"): "AI2401",
 
     # Tecno
     ("tecno", "camon 30 premier 5g"): "CL9",

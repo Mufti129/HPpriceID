@@ -141,9 +141,17 @@ def parse_gsmarena_device_page(url: str, session: requests.Session) -> Optional[
                     elif "Technology" in ttl_txt:
                         if not ds.get("nettech"):
                             ds["nettech"] = nfo_txt
-                    elif "Models" in ttl_txt:
-                        if not factory_model_code:
+                    elif re.search(r"\bmodels?\b", ttl_txt, re.IGNORECASE):
+                        if not factory_model_code or len(nfo_txt or "") > len(factory_model_code or ""):
                             factory_model_code = nfo_txt
+
+        # Sanitasi kode model pabrikan
+        if factory_model_code:
+            factory_model_code = re.sub(r"^models?:\s*", "", factory_model_code, flags=re.IGNORECASE).strip()
+            factory_model_code = re.sub(r"\s*,\s*", ", ", factory_model_code)
+            # Kembalikan format Apple Machine ID 'iPhoneXX, Y' -> 'iPhoneXX,Y' (e.g. iPhone18,5)
+            factory_model_code = re.sub(r"(iPhone\d+),\s+(\d+)", r"\1,\2", factory_model_code)
+            factory_model_code = re.sub(r"(iPad\d+),\s+(\d+)", r"\1,\2", factory_model_code)
 
         # 4. Parsing nilai numerik dan metadata
         # Tahun Rilis
@@ -458,8 +466,9 @@ def ingest_gsmarena_brand_devices(
                 else:
                     # Model sudah ada: Lakukan enrichment atribut yang masih kosong atau belum sinkron
                     updated = False
-                    if not getattr(existing_model, "factory_model_code", None) and parsed.get("factory_model_code"):
-                        existing_model.factory_model_code = parsed["factory_model_code"]
+                    scraped_code = parsed.get("factory_model_code")
+                    if scraped_code and existing_model.factory_model_code != scraped_code:
+                        existing_model.factory_model_code = scraped_code
                         updated = True
                     if existing_model.network_gen == "4G LTE" and parsed.get("network_gen") == "5G":
                         existing_model.network_gen = "5G"
