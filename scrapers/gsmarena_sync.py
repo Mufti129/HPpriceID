@@ -22,12 +22,27 @@ from models.catalog import MasterBrand, MasterModel, MasterVariant
 
 BASE_URL = "https://www.gsmarena.com"
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Referer": "https://www.gsmarena.com/"
-}
+USER_AGENTS_POOL = [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+]
+
+def get_dynamic_headers() -> Dict[str, str]:
+    import random
+    return {
+        "User-Agent": random.choice(USER_AGENTS_POOL),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9,id;q=0.8",
+        "Referer": "https://www.gsmarena.com/",
+        "Sec-Ch-Ua": '"Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"macOS"'
+    }
+
+HEADERS = get_dynamic_headers()
 
 # Pemetaan brand ke slug URL GSMArena
 GSMARENA_BRAND_SLUGS = {
@@ -96,13 +111,34 @@ def parse_price_to_idr(price_str: Optional[str]) -> float:
 
     return 7999000.0
 
-def parse_gsmarena_device_page(url: str, session: requests.Session) -> Optional[Dict[str, Any]]:
-    """Mengekstrak spesifikasi detail dari halaman perangkat GSMArena."""
-    try:
-        resp = session.get(url, headers=HEADERS, timeout=15)
-        if resp.status_code != 200 or "Turnstile" in resp.text:
+def parse_gsmarena_device_page(url: str, session: requests.Session, max_retries: int = 3) -> Optional[Dict[str, Any]]:
+    """Mengekstrak spesifikasi detail dari halaman perangkat GSMArena dengan retry backoff adaptif."""
+    resp = None
+    for attempt in range(max_retries):
+        try:
+            req_headers = get_dynamic_headers()
+            resp = session.get(url, headers=req_headers, timeout=15)
+            if resp.status_code == 429:
+                wait_sec = (attempt + 1) * 2.5
+                print(f"[!] GSMArena rate limit (429) pada {url}. Menunggu {wait_sec:.1f} detik (attempt {attempt+1}/{max_retries})...")
+                time.sleep(wait_sec)
+                continue
+            if resp.status_code != 200 or "Turnstile" in resp.text:
+                if attempt < max_retries - 1:
+                    time.sleep(1.0)
+                    continue
+                return None
+            break
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(1.0)
+                continue
+            print(f"[ERROR] Gagal fetching {url}: {e}")
             return None
-        
+    else:
+        return None
+
+    try:
         soup = BeautifulSoup(resp.text, "html.parser")
         
         # 1. Identitas Nama & Foto
@@ -514,6 +550,8 @@ def ingest_gsmarena_brand_devices(
                     })
 
             db.commit()
+            if new_models_added > 0 or models_enriched > 0 or new_variants_added > 0:
+                sync_database_to_csv()
 
         return {
             "status": "success",
@@ -527,6 +565,78 @@ def ingest_gsmarena_brand_devices(
     except Exception as e:
         print(f"[ERROR] Exception saat auto-ingestion GSMArena: {e}")
         return {"status": "error", "message": str(e)}
+
+def sync_database_to_csv() -> None:
+    """Sinkronisasi otomatis seluruh isi master_models ke data/datahptambahgenerasi.csv dengan 0 NaNs."""
+    import sqlite3
+    import pandas as pd
+    
+    db_file = ROOT_DIR / "smartphone_bekas.db"
+    csv_file = ROOT_DIR / "data" / "datahptambahgenerasi.csv"
+    if not db_file.exists():
+        return
+        
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT 
+            b.name AS Brand,
+            m.name AS Model,
+            m.generation AS Generasi,
+            m.commercial_generation AS "Generasi Komersial",
+            m.lineage_generation AS "Keterangan Silsilah",
+            m.source_platform AS "Platform Sumber",
+            m.factory_model_code AS "Kode Model Pabrikan",
+            m.series AS Seri,
+            m.release_year AS "Tahun Rilis",
+            (
+                SELECT 'Rp ' || printf('%,d', CAST(MIN(v.official_msrp_new) AS INT)) || ' - Rp ' || printf('%,d', CAST(MAX(v.official_msrp_new) AS INT))
+                FROM master_variants v WHERE v.model_id = m.id
+            ) AS "Kisaran Harga Baru Peluncuran",
+            (
+                SELECT GROUP_CONCAT(DISTINCT 
+                    CASE 
+                        WHEN v.storage_gb >= 1024 THEN (v.storage_gb / 1024) || 'TB'
+                        ELSE v.storage_gb || 'GB'
+                    END
+                )
+                FROM master_variants v WHERE v.model_id = m.id
+            ) AS "Kapasitas Tersedia",
+            m.chipset AS "Chipset / SoC",
+            CASE 
+                WHEN m.antutu_benchmark_score IS NOT NULL AND m.antutu_benchmark_score > 0 
+                THEN printf('%,d', m.antutu_benchmark_score)
+                ELSE '-'
+            END AS "Antutu v10",
+            m.display_type AS "Tipe Layar",
+            printf('%.1f inch', m.screen_size_inch) AS "Ukuran Layar",
+            m.refresh_rate_hz || ' Hz' AS "Refresh Rate",
+            m.resolution AS Resolusi,
+            m.main_camera_mp AS "Kamera Utama",
+            m.selfie_camera_mp AS "Kamera Depan",
+            m.battery_capacity_mah || ' mAh' AS Baterai,
+            m.fast_charging_watt || 'W' AS "Fast Charging",
+            CASE WHEN m.has_wireless_charging = 1 THEN m.wireless_charging_watt || 'W' ELSE 'Tidak' END AS "Wireless Charging",
+            m.network_gen AS Jaringan,
+            CASE WHEN m.has_nfc = 1 THEN 'Ya' ELSE 'Tidak' END AS NFC,
+            m.ip_rating AS "Rating IP",
+            m.weight_grams || 'g' AS Bobot,
+            m.os_at_launch AS "OS Saat Rilis"
+        FROM master_models m
+        JOIN master_brands b ON m.brand_id = b.id
+        WHERE m.name NOT LIKE 'Test %'
+        ORDER BY b.name, m.release_year DESC, m.name;
+    """)
+    rows = cursor.fetchall()
+    columns = [desc[0] for desc in cursor.description]
+    df = pd.DataFrame(rows, columns=columns)
+    
+    for col in df.columns:
+        df[col] = df[col].apply(lambda x: '-' if pd.isna(x) or str(x).strip().lower() in ['none', 'nan', ''] else str(x).strip())
+        
+    df.to_csv(csv_file, index=False)
+    conn.close()
+    print(f"[✓] Auto-Sync CSV: {len(df)} baris tersimpan ke {csv_file} (NaN: {df.isna().sum().sum()})")
 
 if __name__ == "__main__":
     target_brand = sys.argv[1] if len(sys.argv) > 1 else "Apple"

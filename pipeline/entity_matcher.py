@@ -24,14 +24,17 @@ class SmartphoneEntityMatcher:
         ).all()
 
         cache = []
+        import re
         for var, model, brand in variants:
             alias_list = [a.strip().lower() for a in (var.aliases or "").split(",") if a.strip()]
+            raw_codes = getattr(model, "factory_model_code", "") or ""
+            model_codes = [c.strip().lower() for c in raw_codes.split(", ") if len(c.strip()) >= 3 and not c.strip().isdigit()]
             search_corpus = [
                 f"{brand.name} {model.name} {var.variant_name}".lower(),
                 f"{model.name} {var.storage_gb}gb".lower(),
                 f"{model.name} {var.variant_name}".lower(),
                 var.variant_name.lower()
-            ] + alias_list
+            ] + alias_list + model_codes
 
             cache.append({
                 "variant_id": var.id,
@@ -43,6 +46,7 @@ class SmartphoneEntityMatcher:
                 "release_year": model.release_year,
                 "official_msrp": float(var.official_msrp_new) if var.official_msrp_new else None,
                 "aliases_list": alias_list,
+                "model_codes": model_codes,
                 "search_corpus": search_corpus
             })
         return cache
@@ -56,6 +60,7 @@ class SmartphoneEntityMatcher:
         Mencocokkan judul listing ke Master Variant ID.
         Returns: (variant_id, confidence_score, matched_name, official_msrp)
         """
+        import re
         title_str = str(title or "")
         clean_title = title_str.lower()
         # Normalisasi singkatan umum smartphone di Indonesia
@@ -73,13 +78,14 @@ class SmartphoneEntityMatcher:
             if storage_gb and item["storage_gb"] != storage_gb:
                 continue
 
-            # 2. Cek apakah ada keyword model / brand / alias
+            # 2. Cek apakah ada keyword model / brand / alias / kode model pabrikan
             brand_kw = item["brand_name"].lower()
             model_kw = item["model_name"].lower()
+            code_in_title = any(re.search(rf"\b{re.escape(c)}\b", clean_title) for c in item.get("model_codes", []))
             
-            # Cek relevansi awal: harus mengandung brand/alias DAN token model pembeda
+            # Cek relevansi awal: harus mengandung brand/alias/kode model DAN token model pembeda
             brand_in_title = brand_kw in clean_title or any(alias in clean_title for alias in item["aliases_list"])
-            if not brand_in_title and model_kw not in clean_title:
+            if not brand_in_title and model_kw not in clean_title and not code_in_title:
                 continue
 
             model_tokens = [w for w in model_kw.replace("(", "").replace(")", "").split() if w not in {"samsung", "galaxy", "apple", "iphone", "xiaomi", "redmi", "poco", "oppo", "vivo", "realme", "infinix", "asus", "rog", "huawei", "sony", "xperia", "tecno", "nokia", "blackberry", "nothing", "phone"} and len(w) > 1]
@@ -95,6 +101,10 @@ class SmartphoneEntityMatcher:
                 # Bonus jika storage tepat
                 if str(item["storage_gb"]) in clean_title:
                     final_score += 5.0
+
+                # High-Confidence Anchor Bonus jika kode model pabrikan tertera
+                if code_in_title:
+                    final_score += 15.0
 
                 if final_score > best_score:
                     best_score = final_score
